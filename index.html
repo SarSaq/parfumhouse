@@ -13,13 +13,13 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   /* ====== ДИЗАЙН-ТОКЕНЫ ======
-     Современная "бьюти-стор" эстетика: тёмный фон цвета матового стекла
-     флакона, тёплое янтарное золото как единственный яркий акцент,
-     карточки на светлой "этикетке". Без категорийных меток —
-     навигация только через поиск и переключатель наличия. */
+     Премиальная парфюмерная эстетика: глубокий бордово-сливовый фон,
+     как флакон тёмного стекла на просвет, с мягким золотым свечением
+     сверху — будто витрина подсвечена тёплым светом. Карточки —
+     цвета слоновой кости, как этикетки. */
   :root{
-    --bg: #1B1410;
-    --bg-elev: #241A14;
+    --bg: #1A0F16;
+    --bg-elev: #241522;
     --card: #FBF6EE;
     --card-soft: #F0E6D6;
     --ink: #241A14;
@@ -29,7 +29,7 @@
     --amber-deep: #B5701F;
     --line: rgba(255,255,255,0.08);
     --on-dark: #F6EFE3;
-    --on-dark-soft: #B8A998;
+    --on-dark-soft: #B8A0A8;
 
     --font-display: 'Fraunces', Georgia, serif;
     --font-body: 'Inter', -apple-system, sans-serif;
@@ -41,7 +41,11 @@
   html,body{ height:100%; }
   body{
     background:var(--bg);
-    background-image:radial-gradient(ellipse 600px 300px at 50% -10%, rgba(217,140,63,0.18), transparent 70%);
+    background-image:
+      radial-gradient(ellipse 700px 400px at 50% -8%, rgba(217,140,63,0.22), transparent 65%),
+      radial-gradient(ellipse 500px 350px at 100% 20%, rgba(139,58,90,0.18), transparent 60%),
+      radial-gradient(ellipse 500px 400px at 0% 60%, rgba(90,40,60,0.15), transparent 55%);
+    background-attachment:fixed;
     color:var(--on-dark);
     font-family:var(--font-body);
     -webkit-font-smoothing:antialiased;
@@ -312,8 +316,16 @@
     line-height:1.55;
     margin-top:14px;
   }
+  .vol-label{
+    font-family:var(--font-mono);
+    font-size:9.5px;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    color:var(--ink-soft);
+    margin-top:18px;
+    margin-bottom:8px;
+  }
   .vol-table{
-    margin-top:16px;
     border-radius:14px;
     overflow:hidden;
     border:1px solid rgba(36,26,20,0.1);
@@ -322,8 +334,17 @@
     display:flex;
     justify-content:space-between;
     align-items:center;
-    padding:10px 14px;
+    padding:12px 14px;
     background:var(--card-soft);
+    cursor:pointer;
+    transition:background .12s ease;
+  }
+  .vol-row.selected{
+    background:var(--amber);
+  }
+  .vol-row.selected .vol-ml,
+  .vol-row.selected .vol-price{
+    color:#fff;
   }
   .vol-row:not(:last-child){
     border-bottom:1px solid rgba(36,26,20,0.08);
@@ -375,7 +396,7 @@
 <body>
 
 <header>
-  <div class="eyebrow">Распив на пробу</div>
+  <div class="eyebrow">Оригинальная парфюмерия из Европы</div>
   <h1 id="shopName">Парфюмерная лавка</h1>
   <p id="shopSub">Флаконы в наличии — пишите, оформим в переписке</p>
 </header>
@@ -416,8 +437,8 @@
    2) TELEGRAM_USERNAME — ник знакомой в Telegram без @.
    3) SHOP_NAME / SHOP_SUB — название и подпись вверху.
 ========================================================= */
-const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQMSpQwstchHCeBia5-2c67KFHPzkid8DCUqmHwZ6TanFD8H2VtwnNenQnByu0qyenKqVJx8ERTkv4s/pub?gid=0&single=true&output=csv"; // вставить ссылку на опубликованный CSV
-const TELEGRAM_USERNAME = "Sargis_Sargsyan"; // заменить на реальный ник
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQMSpQwstchHCeBia5-2c67KFHPzkid8DCUqmHwZ6TanFD8H2VtwnNenQnByu0qyenKqVJx8ERTkv4s/pub?gid=0&single=true&output=csv";
+const TELEGRAM_USERNAME = "Sargis_Sargsyan";
 const SHOP_NAME = "ParfumHouse";
 const SHOP_SUB = "Флаконы в наличии — пишите, оформим в переписке";
 
@@ -425,19 +446,19 @@ const SHOP_SUB = "Флаконы в наличии — пишите, оформ�
 const SAMPLE_DATA = [
   {name:"Baccarat Rouge 540", brand:"Maison Francis Kurkdjian",
    top:"шафран, жасмин", heart:"амбергрис", base:"кедр, бензоин",
-   vols:[{ml:"2", price:"900 ₽"},{ml:"5", price:"2100 ₽"},{ml:"10", price:"3900 ₽"}],
+   vols:[{ml:"2", price:"900"},{ml:"5", price:"2100"},{ml:"10", price:"3900"}],
    stock:"yes", photo:"", desc:"Янтарно-сладкий, с эффектом «второй кожи». Держится сутки."},
   {name:"Santal 33", brand:"Le Labo",
    top:"кардамон, фиалка", heart:"сандал, кожа", base:"кедр, амбер",
-   vols:[{ml:"2", price:"650 ₽"},{ml:"5", price:"1500 ₽"},{ml:"10", price:"2800 ₽"}],
+   vols:[{ml:"2", price:"650"},{ml:"5", price:"1500"},{ml:"10", price:"2800"}],
    stock:"yes", photo:"", desc:"Тёплый, дымный сандал с нотой кожи. Унисекс."},
   {name:"Light Blue", brand:"Dolce & Gabbana",
    top:"лимон, яблоко", heart:"бамбук, жасмин", base:"амбер, кедр",
-   vols:[{ml:"2", price:"180 ₽"},{ml:"5", price:"400 ₽"},{ml:"10", price:"750 ₽"}],
+   vols:[{ml:"2", price:"180"},{ml:"5", price:"400"},{ml:"10", price:"750"}],
    stock:"no", photo:"", desc:"Лёгкий летний аромат, свежий и сочный."},
   {name:"Black Opium", brand:"Yves Saint Laurent",
    top:"груша, мандарин", heart:"жасмин, кофе", base:"ваниль, пачули",
-   vols:[{ml:"2", price:"300 ₽"},{ml:"5", price:"700 ₽"},{ml:"10", price:"1300 ₽"}],
+   vols:[{ml:"2", price:"300"},{ml:"5", price:"700"},{ml:"10", price:"1300"}],
    stock:"yes", photo:"", desc:"Кофейно-ванильный, тёмный и сладкий вечерний аромат."}
 ];
 
@@ -515,29 +536,36 @@ function pillsFrom(str){
 }
 
 function parsePriceNumber(p){
-  const num = (p || "").replace(/[^\d]/g, "");
+  const num = (p || "").toString().replace(/[^\d]/g, "");
   return num ? parseInt(num, 10) : Infinity;
+}
+
+function formatPrice(p){
+  const num = parsePriceNumber(p);
+  return num === Infinity ? "" : `${num} ₽`;
 }
 
 function priceFrom(vols){
   if(!vols || !vols.length) return "";
   const cheapest = vols.reduce((a,b) => parsePriceNumber(a.price) <= parsePriceNumber(b.price) ? a : b);
-  return `от ${cheapest.price}`;
+  return `от ${formatPrice(cheapest.price)}`;
 }
 
 function openSheet(item){
   const inStock = item.stock === "yes" || item.stock === "да";
   document.getElementById("sheetPhoto").style.backgroundImage = item.photo ? `url('${item.photo}')` : "none";
+  let selectedIndex = 0;
   document.getElementById("sheetContent").innerHTML = `
     <div class="brand">${item.brand}</div>
     <h2>${item.name}</h2>
     <div class="sheet-meta">
       <span class="sheet-stock ${inStock ? 'in' : 'out'}">${inStock ? 'В наличии' : 'Нет в наличии'}</span>
     </div>
-    <div class="vol-table">
-      ${item.vols.map(v => `<div class="vol-row"><span class="vol-ml">${v.ml} мл</span><span class="vol-price">${v.price}</span></div>`).join("")}
+    <div class="vol-label">Выберите объём</div>
+    <div class="vol-table" id="volTable">
+      ${item.vols.map((v,i) => `<div class="vol-row ${i===0 ? 'selected' : ''}" data-index="${i}"><span class="vol-ml">${v.ml} мл</span><span class="vol-price">${formatPrice(v.price)}</span></div>`).join("")}
     </div>
-    <div class="vol-note">Уточняйте, какой объём в наличии, при заказе</div>
+    <div class="vol-note">Уточняйте наличие выбранного объёма при заказе</div>
     <div class="notes">
       ${item.top ? `<div class="note-group"><div class="note-label">Верхние ноты</div><div class="note-pills">${pillsFrom(item.top).map(p=>`<span class="pill">${p}</span>`).join("")}</div></div>` : ""}
       ${item.heart ? `<div class="note-group"><div class="note-label">Ноты сердца</div><div class="note-pills">${pillsFrom(item.heart).map(p=>`<span class="pill">${p}</span>`).join("")}</div></div>` : ""}
@@ -546,8 +574,17 @@ function openSheet(item){
     ${item.desc ? `<div class="desc">${item.desc}</div>` : ""}
     <button class="order-btn" id="sheetOrderBtn">Заказать</button>
   `;
+  document.querySelectorAll("#volTable .vol-row").forEach(row => {
+    row.addEventListener("click", () => {
+      document.querySelectorAll("#volTable .vol-row").forEach(r => r.classList.remove("selected"));
+      row.classList.add("selected");
+      selectedIndex = parseInt(row.dataset.index, 10);
+    });
+  });
   document.getElementById("sheetOrderBtn").addEventListener("click", () => {
-    const text = `Здравствуйте! Хочу заказать «${item.name}» (${item.brand}).`;
+    const chosen = item.vols[selectedIndex];
+    const volText = chosen ? `, ${chosen.ml} мл (${formatPrice(chosen.price)})` : "";
+    const text = `Здравствуйте! Хочу заказать «${item.name}» (${item.brand})${volText}.`;
     const link = `https://t.me/${TELEGRAM_USERNAME}?text=${encodeURIComponent(text)}`;
     if(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData){
       window.Telegram.WebApp.openTelegramLink(link);
