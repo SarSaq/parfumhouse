@@ -531,6 +531,18 @@ async function loadData(){
   render();
 }
 
+function resolvePhotoUrl(url){
+  if(!url) return "";
+  url = url.trim();
+  // Google Drive: ссылка вида .../file/d/ID/view?usp=sharing -> прямая ссылка на картинку
+  let match = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+  if(match) return `https://lh3.googleusercontent.com/d/${match[1]}`;
+  // Google Drive: ссылка вида ...?id=ID -> прямая ссылка на картинку
+  match = url.match(/[?&]id=([^&]+)/);
+  if(url.includes("drive.google.com") && match) return `https://lh3.googleusercontent.com/d/${match[1]}`;
+  return url;
+}
+
 function pillsFrom(str){
   return (str || "").split(",").map(s => s.trim()).filter(Boolean);
 }
@@ -553,7 +565,7 @@ function priceFrom(vols){
 
 function openSheet(item){
   const inStock = item.stock === "yes" || item.stock === "да";
-  document.getElementById("sheetPhoto").style.backgroundImage = item.photo ? `url('${item.photo}')` : "none";
+  document.getElementById("sheetPhoto").style.backgroundImage = item.photo ? `url('${resolvePhotoUrl(item.photo)}')` : "none";
   let selectedIndex = 0;
   document.getElementById("sheetContent").innerHTML = `
     <div class="brand">${item.brand}</div>
@@ -620,7 +632,7 @@ function renderGrid(){
   grid.innerHTML = "";
   items.forEach((item, n) => {
     const inStock = item.stock === "yes" || item.stock === "да";
-    const photoStyle = item.photo ? `background-image:url('${item.photo}')` : "";
+    const photoStyle = item.photo ? `background-image:url('${resolvePhotoUrl(item.photo)}')` : "";
 
     const card = document.createElement("div");
     card.className = "card";
