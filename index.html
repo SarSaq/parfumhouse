@@ -138,6 +138,7 @@
     grid-template-columns:1fr 1fr;
     gap:12px;
   }
+  .grid .card{ min-width:0; }
 
   .card{
     background:var(--card);
@@ -156,7 +157,10 @@
 
   .card-photo{
     aspect-ratio:1/1;
-    background:var(--card-soft) center/cover no-repeat;
+    background-color:var(--card-soft);
+    background-position:center;
+    background-size:cover;
+    background-repeat:no-repeat;
     position:relative;
     display:flex;
     align-items:flex-end;
@@ -234,6 +238,7 @@
     position:fixed;
     left:0; right:0; bottom:0;
     max-height:88vh;
+    height:auto;
     background:var(--paper);
     border-radius:24px 24px 0 0;
     transform:translateY(100%);
@@ -251,8 +256,11 @@
     margin:10px auto 0;
   }
   .sheet-photo{
-    aspect-ratio:16/10;
-    background:var(--card-soft) center/cover no-repeat;
+    aspect-ratio:1/1;
+    background-color:var(--card-soft);
+    background-position:center;
+    background-size:cover;
+    background-repeat:no-repeat;
     margin:14px 18px 0;
     border-radius:16px;
   }
