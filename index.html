@@ -222,6 +222,26 @@
     margin-bottom:8px;
   }
 
+  .dev-credit{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    margin:8px auto 20px;
+    padding:8px 16px;
+    width:fit-content;
+    color:var(--on-dark-soft);
+    text-decoration:none;
+    font-size:11.5px;
+    opacity:0.65;
+    transition:opacity .15s ease;
+  }
+  .dev-credit:active{ opacity:1; }
+  .dev-credit b{
+    color:var(--on-dark);
+    font-weight:600;
+  }
+
   /* ===== Деталь товара — нижний лист ===== */
   .sheet-backdrop{
     position:fixed; inset:0;
@@ -426,6 +446,11 @@
     Собираем каталог…
   </div>
 </div>
+
+<a class="dev-credit" href="https://t.me/LevelApp_am" target="_blank" rel="noopener">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M21.05 3.35 2.94 10.36c-1.24.5-1.23 1.19-.22 1.5l4.65 1.45 1.8 5.5c.22.6.11.84.75.84.5 0 .72-.23 1-.5l2.4-2.32 4.97 3.67c.92.5 1.58.24 1.81-.85l3.28-15.4c.33-1.34-.5-1.94-1.33-1.9Z"/></svg>
+  <span>Мини-приложение разработано в <b>LevelApp</b></span>
+</a>
 
 <div class="sheet-backdrop" id="backdrop"></div>
 <div class="sheet" id="sheet">
