@@ -449,53 +449,44 @@
     opacity:0;
     pointer-events:none;
   }
-  .splash-svg{
-    width:min(78vw, 340px);
-    height:auto;
-    overflow:visible;
+  .splash-textwrap{
+    position:relative;
+    display:inline-block;
   }
   .splash-text{
+    display:block;
     font-family:var(--font-display);
     font-weight:600;
-    font-size:44px;
+    font-size:clamp(28px, 8vw, 44px);
     letter-spacing:-0.01em;
+    white-space:nowrap;
   }
   .splash-text-ghost{
-    fill:none;
-    stroke:rgba(246,239,227,0.28);
-    stroke-width:1;
+    color:transparent;
+    -webkit-text-stroke:1px rgba(246,239,227,0.28);
   }
-  .splash-fill{
-    fill:var(--amber);
+  .splash-text-fill{
+    position:absolute;
+    top:0; left:0;
+    color:var(--amber);
+    clip-path:inset(100% 0 0 0);
+    transition:clip-path 1.8s cubic-bezier(.45,0,.2,1);
   }
-  .splash-wave{
-    fill:var(--amber);
-    transform:translateY(90px);
-    transition:transform 1.8s cubic-bezier(.45,0,.2,1);
-  }
-  .splash-wave.rise{
-    transform:translateY(0px);
+  .splash-text-fill.rise{
+    clip-path:inset(0% 0 0 0);
   }
   @media (prefers-reduced-motion: reduce){
-    .splash-wave{ transition:transform .8s ease; }
+    .splash-text-fill{ transition:clip-path .8s ease; }
   }
 </style>
 </head>
 <body>
 
 <div class="splash" id="splash">
-  <svg class="splash-svg" viewBox="0 0 340 90" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <clipPath id="textClip">
-        <text x="50%" y="52" text-anchor="middle" class="splash-text">ParfumHouse</text>
-      </clipPath>
-    </defs>
-    <text x="50%" y="52" text-anchor="middle" class="splash-text splash-text-ghost">ParfumHouse</text>
-    <g clip-path="url(#textClip)">
-      <rect class="splash-fill" x="0" y="0" width="340" height="90"/>
-      <path class="splash-wave" d="M0,20 C 40,10 80,30 120,20 C 160,10 200,30 240,20 C 280,10 320,30 340,20 L340,90 L0,90 Z"/>
-    </g>
-  </svg>
+  <div class="splash-textwrap">
+    <span class="splash-text splash-text-ghost">ParfumHouse</span>
+    <span class="splash-text splash-text-fill" id="splashFill">ParfumHouse</span>
+  </div>
 </div>
 
 <header>
@@ -783,33 +774,14 @@ if(window.Telegram && window.Telegram.WebApp){
   window.Telegram.WebApp.expand();
 }
 
-// ===== Анимация заставки: волна поднимается и покачивается =====
-const waveEl = document.querySelector(".splash-wave");
+// ===== Анимация заставки: заливка текста снизу вверх =====
+const splashFillEl = document.getElementById("splashFill");
 const splashEl = document.getElementById("splash");
-const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-function wavePath(offset, phase){
-  const amp = 10;
-  const y1 = offset + Math.sin(phase) * amp;
-  const y2 = offset + Math.sin(phase + Math.PI) * amp;
-  const y3 = offset + Math.sin(phase + Math.PI * 2) * amp;
-  return `M0,${y1} C 40,${y1-amp} 80,${y1+amp} 120,${y1} C 160,${y1-amp} 200,${y1+amp} 240,${y1} C 280,${y1-amp} 320,${y1+amp} 340,${y1} L340,90 L0,90 Z`;
-}
-
-let waveStart = null;
-function animateWave(ts){
-  if(waveStart === null) waveStart = ts;
-  const elapsed = ts - waveStart;
-  const phase = elapsed / 260;
-  if(waveEl) waveEl.setAttribute("d", wavePath(20, phase));
-  if(!splashEl.classList.contains("hide")) requestAnimationFrame(animateWave);
-}
-
-if(waveEl && !reduceMotion){
-  requestAnimationFrame(animateWave);
-}
 requestAnimationFrame(() => {
-  if(waveEl) waveEl.classList.add("rise");
+  requestAnimationFrame(() => {
+    if(splashFillEl) splashFillEl.classList.add("rise");
+  });
 });
 
 function hideSplash(){
@@ -817,7 +789,7 @@ function hideSplash(){
 }
 
 const splashStart = Date.now();
-const MIN_SPLASH_MS = 1400;
+const MIN_SPLASH_MS = 1600;
 loadData().catch(()=>{}).then(() => {
   const elapsed = Date.now() - splashStart;
   const remain = Math.max(0, MIN_SPLASH_MS - elapsed);
