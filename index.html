@@ -469,14 +469,31 @@
     position:absolute;
     top:0; left:0;
     color:var(--amber);
-    clip-path:inset(100% 0 0 0);
-    transition:clip-path 1.8s cubic-bezier(.45,0,.2,1);
+    clip-path:polygon(0% 100%, 100% 100%, 100% 100%, 0% 100%);
   }
   .splash-text-fill.rise{
-    clip-path:inset(0% 0 0 0);
+    animation:waveFill 2.6s cubic-bezier(.45,0,.2,1) forwards;
+  }
+  @keyframes waveFill{
+    0%{
+      clip-path:polygon(0% 100%, 15% 100%, 30% 100%, 45% 100%, 60% 100%, 75% 100%, 90% 100%, 100% 100%, 100% 100%, 0% 100%);
+    }
+    35%{
+      clip-path:polygon(0% 55%, 15% 48%, 30% 58%, 45% 46%, 60% 60%, 75% 46%, 90% 58%, 100% 50%, 100% 100%, 0% 100%);
+    }
+    65%{
+      clip-path:polygon(0% 28%, 15% 34%, 30% 22%, 45% 36%, 60% 20%, 75% 36%, 90% 22%, 100% 30%, 100% 100%, 0% 100%);
+    }
+    100%{
+      clip-path:polygon(0% 0%, 15% 0%, 30% 0%, 45% 0%, 60% 0%, 75% 0%, 90% 0%, 100% 0%, 100% 100%, 0% 100%);
+    }
   }
   @media (prefers-reduced-motion: reduce){
-    .splash-text-fill{ transition:clip-path .8s ease; }
+    .splash-text-fill.rise{ animation:waveFillReduced .8s ease forwards; }
+  }
+  @keyframes waveFillReduced{
+    from{ clip-path:polygon(0% 100%, 100% 100%, 100% 100%, 0% 100%); }
+    to{ clip-path:polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%); }
   }
 </style>
 </head>
@@ -484,8 +501,8 @@
 
 <div class="splash" id="splash">
   <div class="splash-textwrap">
-    <span class="splash-text splash-text-ghost">ParfumHouse</span>
-    <span class="splash-text splash-text-fill" id="splashFill">ParfumHouse</span>
+    <span class="splash-text splash-text-ghost">Parfum House</span>
+    <span class="splash-text splash-text-fill" id="splashFill">Parfum House</span>
   </div>
 </div>
 
@@ -789,7 +806,7 @@ function hideSplash(){
 }
 
 const splashStart = Date.now();
-const MIN_SPLASH_MS = 1600;
+const MIN_SPLASH_MS = 2800;
 loadData().catch(()=>{}).then(() => {
   const elapsed = Date.now() - splashStart;
   const remain = Math.max(0, MIN_SPLASH_MS - elapsed);
