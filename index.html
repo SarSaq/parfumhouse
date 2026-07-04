@@ -54,9 +54,14 @@
   }
 
   header{
-    /* --tg-header-offset выставляется из JS когда известна высота панели Telegram.
-       Фолбек: safe-area (notch/Dynamic Island) + 88px (системная строка + кнопки TG). */
-    padding:calc(var(--tg-header-offset, calc(env(safe-area-inset-top, 0px) + 88px))) 18px 16px;
+    /* Telegram сам прописывает --tg-header-height и --tg-content-safe-area-inset-top в :root.
+       Складываем их — это точная высота панели с кнопками + notch.
+       Фолбек для браузера без TG: safe-area-inset-top + 52px (статус-бар). */
+    padding:calc(
+      var(--tg-header-height, 0px) +
+      var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px)) +
+      52px
+    ) 18px 16px;
   }
   .header-row{
     display:flex;
@@ -747,61 +752,22 @@ function rowsToItems(rows){
   }).filter(it => it.name);
 }
 
-const CACHE_KEY = "parfumhouse_csv_cache";
-const CACHE_TTL_MS = 30 * 60 * 1000; // 30 минут
-
-function getCachedData(){
-  try{
-    const raw = localStorage.getItem(CACHE_KEY);
-    if(!raw) return null;
-    const { ts, data } = JSON.parse(raw);
-    // Возвращаем кеш только если он свежее 30 минут
-    if(Date.now() - ts < CACHE_TTL_MS) return data;
-    return null;
-  } catch(e){ return null; }
-}
-
-function setCachedData(items){
-  try{
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: items }));
-  } catch(e){ /* localStorage может быть заблокирован — не критично */ }
-}
-
 async function loadData(){
   if(!SHEET_CSV_URL){
     allItems = SAMPLE_DATA;
     render();
     return;
   }
-
-  // Сразу показываем кешированные данные — без ожидания сети
-  const cached = getCachedData();
-  if(cached && cached.length){
-    allItems = cached;
-    render();
-  }
-
-  // Параллельно фетчим свежие данные в фоне
   try{
-    const res = await fetch(SHEET_CSV_URL);
+    const res = await fetch(SHEET_CSV_URL + "&t=" + Date.now()); // cache-bust
     const text = await res.text();
     const rows = parseCSV(text);
     const fresh = rowsToItems(rows);
-    if(fresh.length){
-      allItems = fresh;
-      setCachedData(fresh); // сохраняем в кеш
-      render(); // обновляем UI (незаметно если данные не изменились)
-    } else if(!cached){
-      allItems = SAMPLE_DATA;
-      render();
-    }
+    allItems = fresh.length ? fresh : SAMPLE_DATA;
   } catch(e){
-    // Нет сети — если кеш был, уже показан; иначе показываем тестовые данные
-    if(!cached || !cached.length){
-      allItems = SAMPLE_DATA;
-      render();
-    }
+    allItems = SAMPLE_DATA;
   }
+  render();
 }
 
 function resolvePhotoUrl(url){
@@ -1001,28 +967,8 @@ if(window.Telegram && window.Telegram.WebApp){
   if(tg.disableVerticalSwipes) tg.disableVerticalSwipes();
   if(tg.requestFullscreen) tg.requestFullscreen();
 
-  // Выставляем точный отступ под панель Telegram (кнопки закрыть/свернуть/меню).
-  // headerHeight становится доступным не сразу — ждём ненулевого значения.
-  function applyTgOffset(){
-    const headerH = tg.headerHeight || 0;
-    const safeTop = (tg.contentSafeAreaInset && tg.contentSafeAreaInset.top) || 0;
-    const total = headerH + safeTop;
-    if(total > 0){
-      document.documentElement.style.setProperty("--tg-header-offset", total + "px");
-      return true;
-    }
-    return false;
-  }
-
-  // Пробуем сразу, затем polling пока не получим ненулевое значение (макс 20 попыток)
-  if(!applyTgOffset()){
-    let attempts = 0;
-    const poll = setInterval(() => {
-      attempts++;
-      if(applyTgOffset() || attempts >= 20) clearInterval(poll);
-    }, 100);
-  }
-  tg.onEvent("viewportChanged", applyTgOffset);
+  // CSS-переменные --tg-header-height и --tg-content-safe-area-inset-top
+  // Telegram проставляет сам в :root — читаем их напрямую из CSS, JS не нужен.
 }
 
 // ===== Анимация заставки: заливка текста снизу вверх =====
@@ -1094,7 +1040,7 @@ document.addEventListener("touchend", async () => {
     ptr.style.opacity = "1";
 
     // Сбрасываем кеш и грузим свежие данные
-    try{ localStorage.removeItem(CACHE_KEY); } catch(e){}
+    // кеш отключён
     await loadData().catch(()=>{});
 
     // Небольшая пауза чтобы пользователь увидел что обновление прошло
