@@ -54,9 +54,9 @@
   }
 
   header{
-    padding:calc(env(safe-area-inset-top, 0px) + 44px) 18px 16px;
-    /* 44px — высота системной строки состояния на большинстве iOS/Android.
-       env(safe-area-inset-top) покрывает notch/Dynamic Island автоматически. */
+    /* --tg-header-offset выставляется из JS когда известна высота панели Telegram.
+       Фолбек: safe-area (notch/Dynamic Island) + 88px (системная строка + кнопки TG). */
+    padding:calc(var(--tg-header-offset, calc(env(safe-area-inset-top, 0px) + 88px))) 18px 16px;
   }
   .header-row{
     display:flex;
@@ -332,7 +332,7 @@
     gap:6px;
     padding:8px 12px;
     border-radius:14px;
-    border:1px solid rgba(217,140,63,0.3);
+    border:0.5px solid rgba(217,140,63,0.25);
     text-decoration:none;
     opacity:0.82;
     transition:opacity .15s ease;
@@ -876,28 +876,32 @@ function openSheet(item){
     }
   });
   document.getElementById("sheetShareBtn").addEventListener("click", async () => {
-    // Шарим текущий URL страницы — работает и для PWA, и для GitHub Pages
     const shareUrl = window.location.href;
-    const shareData = {
-      title: `${item.name} — ${item.brand}`,
-      text: `${item.name} (${item.brand}) в ParfumHouse`,
-      url: shareUrl
-    };
-    try{
-      if(navigator.share && navigator.canShare && navigator.canShare(shareData)){
-        // Нативный системный диалог (iOS/Android)
-        await navigator.share(shareData);
-      } else if(navigator.share){
-        await navigator.share(shareData);
-      } else {
-        // Фолбек: копируем ссылку в буфер
-        await navigator.clipboard.writeText(shareUrl);
-        const btn = document.getElementById("sheetShareBtn");
-        if(btn){ const orig = btn.innerHTML; btn.textContent = "✓ Ссылка скопирована"; setTimeout(()=>{ btn.innerHTML = orig; }, 2000); }
+    const btn = document.getElementById("sheetShareBtn");
+
+    // navigator.share() — нативный системный диалог Android/iOS.
+    // Не используем canShare(): на ряде Android он возвращает false даже когда share работает.
+    // Пробуем напрямую, при ошибке NotAllowedError/AbortError — пользователь закрыл сам.
+    if(navigator.share){
+      try{
+        await navigator.share({
+          title: `${item.name} — ${item.brand}`,
+          text: `${item.name} (${item.brand}) в ParfumHouse`,
+          url: shareUrl
+        });
+        return; // успешно — выходим
+      } catch(e){
+        // AbortError = пользователь закрыл диалог, выходим молча
+        if(e.name === "AbortError") return;
+        // Другая ошибка (DataError и т.п.) — падаем в фолбек ниже
       }
-    } catch(e){
-      // Пользователь закрыл диалог — ничего не делаем
     }
+
+    // Фолбек: копируем ссылку в буфер (десктоп или браузер без share)
+    try{
+      await navigator.clipboard.writeText(shareUrl);
+      if(btn){ const orig = btn.innerHTML; btn.textContent = "✓ Ссылка скопирована"; setTimeout(()=>{ btn.innerHTML = orig; }, 2000); }
+    } catch(e){}
   });
   document.getElementById("backdrop").classList.add("open");
   document.getElementById("sheet").classList.add("open");
@@ -983,12 +987,23 @@ if(window.Telegram && window.Telegram.WebApp){
   const tg = window.Telegram.WebApp;
   tg.ready();
   tg.expand();
-  // Скрываем верхнюю строку с названием приложения
   if(tg.setHeaderColor) tg.setHeaderColor("#1A0F16");
   if(tg.setBackgroundColor) tg.setBackgroundColor("#1A0F16");
-  // В новых версиях SDK — полностью убираем header bar
   if(tg.disableVerticalSwipes) tg.disableVerticalSwipes();
   if(tg.requestFullscreen) tg.requestFullscreen();
+
+  // Выставляем точный отступ под панель Telegram.
+  // headerHeight = высота верхней панели с кнопками, contentSafeAreaInset.top = Dynamic Island и т.п.
+  function applyTgOffset(){
+    const headerH = tg.headerHeight || 0;
+    const safeTop = (tg.contentSafeAreaInset && tg.contentSafeAreaInset.top) || 0;
+    const total = headerH + safeTop;
+    if(total > 0){
+      document.documentElement.style.setProperty("--tg-header-offset", total + "px");
+    }
+  }
+  applyTgOffset();
+  tg.onEvent("viewportChanged", applyTgOffset);
 }
 
 // ===== Анимация заставки: заливка текста снизу вверх =====
