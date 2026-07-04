@@ -1,1209 +1,494 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>ParfumHouse — распив парфюма</title>
-  <meta name="theme-color" content="#1A0F16" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="ParfumHouse" />
-  <link rel="manifest" href="manifest.json" />
-  <link rel="apple-touch-icon" href="icon-192.png" />
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    /* ====== iOS-воздушность ====== */
-    :root {
-      --bg: #1A0F16;
-      --bg-elev: #241522;
-      --card: #FBF6EE;
-      --card-soft: #F0E6D6;
-      --ink: #241A14;
-      --ink-soft: #8A7A6E;
-      --paper: #F6EFE3;
-      --amber: #D98C3F;
-      --amber-deep: #B5701F;
-      --line: rgba(255, 255, 255, 0.08);
-      --on-dark: #F6EFE3;
-      --on-dark-soft: #B8A0A8;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ParfumHouse</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1A0F16">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
 
-      --font-display: 'Fraunces', Georgia, serif;
-      --font-body: 'Inter', -apple-system, sans-serif;
-      --font-mono: 'IBM Plex Mono', monospace;
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-      --spring-out: cubic-bezier(0.34, 1.56, 0.64, 1);
-      --spring-in: cubic-bezier(0.4, 0.0, 0.2, 1);
-    }
+    <style>
+        :root {
+            --bg-color: #1A0F16;
+            --card-bg: #251820;
+            --text-primary: #F5F0EB;
+            --text-secondary: #A89B93;
+            --accent: #D4A574;
+            --accent-hover: #E5B885;
+            --border-radius: 16px;
+            --skeleton-base: #2A1D24;
+            --skeleton-shine: #36262F;
+        }
 
-    @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            padding-bottom: 80px; /* Отступ под футер */
+        }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      -webkit-tap-highlight-color: transparent;
-    }
+        /* === СКЕЛЕТОН-ЛОАДЕР === */
+        .skeleton-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            padding: 16px;
+        }
 
-    html,
-    body {
-      height: 100%;
-    }
+        .skeleton-card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            aspect-ratio: 3/4;
+        }
 
-    body {
-      background: var(--bg);
-      background-image:
-        radial-gradient(ellipse 700px 400px at 50% -8%, rgba(217, 140, 63, 0.22), transparent 65%),
-        radial-gradient(ellipse 500px 350px at 100% 20%, rgba(139, 58, 90, 0.18), transparent 60%),
-        radial-gradient(ellipse 500px 400px at 0% 60%, rgba(90, 40, 60, 0.15), transparent 55%);
-      background-attachment: fixed;
-      color: var(--on-dark);
-      font-family: var(--font-body);
-      -webkit-font-smoothing: antialiased;
-      min-height: 100%;
-      -webkit-overflow-scrolling: touch;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
-    }
+        .skeleton-img { width: 100%; height: 70%; background: var(--skeleton-base); }
+        .skeleton-text { margin: 12px; height: 12px; border-radius: 6px; background: var(--skeleton-base); }
+        .skeleton-text.short { width: 60%; margin-top: 8px; }
 
-    /* ===== Фиксированная шапка ===== */
-    .header-fixed {
-      flex-shrink: 0;
-      padding: 16px 18px 12px;
-      background: rgba(26, 15, 22, 0.72);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-      z-index: 10;
-    }
+        .skeleton-img, .skeleton-text { animation: pulse 1.5s ease-in-out infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-    .header-row {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 10px;
-    }
+        .skeleton-grid.hidden { display: none; }
 
-    .header-main {
-      min-width: 0;
-      flex: 1;
-    }
+        /* === ОСНОВНОЙ КОНТЕНТ === */
+        #products-grid {
+            display: none; /* Скрыт до загрузки */
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            padding: 16px;
+        }
 
-    .eyebrow {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--amber);
-      margin-bottom: 4px;
-    }
+        .product-card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            position: relative;
+        }
 
-    header h1 {
-      font-family: var(--font-display);
-      font-weight: 600;
-      font-size: 26px;
-      line-height: 1.1;
-      letter-spacing: -0.01em;
-    }
+        .product-card:active { transform: scale(0.97); }
+        .product-card.out-of-stock { opacity: 0.5; pointer-events: none; }
 
-    header p {
-      color: var(--on-dark-soft);
-      font-size: 12.5px;
-      margin-top: 4px;
-    }
+        .product-img-wrap {
+            width: 100%;
+            aspect-ratio: 1/1;
+            background: var(--skeleton-base);
+            overflow: hidden;
+        }
 
-    .dev-credit {
-      flex: 0 0 auto;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      width: 32px;
-      padding: 8px 4px;
-      border-radius: 100px;
-      border: 1px solid rgba(217, 140, 63, 0.3);
-      text-decoration: none;
-      opacity: 0.8;
-      transition: opacity 0.15s ease;
-      background: rgba(255, 255, 255, 0.03);
-    }
-    .dev-credit:active {
-      opacity: 1;
-    }
-    .dev-made {
-      font-family: var(--font-mono);
-      font-size: 8px;
-      letter-spacing: 0.06em;
-      color: var(--on-dark-soft);
-      text-transform: lowercase;
-      text-align: center;
-      line-height: 1.2;
-      word-break: break-all;
-    }
-    .dev-logo {
-      width: 44px;
-      height: auto;
-      display: block;
-      border-radius: 100px;
-    }
+        .product-img-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
 
-    /* ===== Фильтры ===== */
-    .filters-fixed {
-      flex-shrink: 0;
-      padding: 8px 18px 12px;
-      background: rgba(26, 15, 22, 0.6);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-      z-index: 9;
-    }
+        .no-image-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--skeleton-base), var(--card-bg));
+            font-size: 32px;
+        }
 
-    .toolbar {
-      display: flex;
-      gap: 8px;
-    }
+        .product-info { padding: 10px 12px 14px; }
+        .product-brand { font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .product-name { font-size: 13px; font-weight: 600; line-height: 1.3; margin-bottom: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .product-price { font-size: 14px; color: var(--accent); font-weight: 700; }
 
-    .search {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(255, 255, 255, 0.07);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.10);
-      border-radius: 14px;
-      padding: 10px 14px;
-      transition: all 0.2s var(--spring-out);
-    }
-    .search:focus-within {
-      background: rgba(255, 255, 255, 0.12);
-      border-color: var(--amber);
-      transform: scale(1.01);
-    }
-    .search svg {
-      flex: 0 0 auto;
-      opacity: 0.5;
-    }
-    .search input {
-      flex: 1;
-      background: none;
-      border: none;
-      outline: none;
-      color: var(--on-dark);
-      font-family: var(--font-body);
-      font-size: 14px;
-    }
-    .search input::placeholder {
-      color: var(--on-dark-soft);
-    }
+        .stock-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .stock-badge.no { color: #ff6b6b; }
 
-    .stock-toggle {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      padding-top: 10px;
-      font-size: 13px;
-      color: var(--on-dark-soft);
-    }
+        /* === BOTTOM SHEET === */
+        .overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            opacity: 0; visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        .overlay.active { opacity: 1; visibility: visible; }
 
-    .switch {
-      width: 38px;
-      height: 22px;
-      border-radius: 100px;
-      background: rgba(255, 255, 255, 0.10);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      position: relative;
-      cursor: pointer;
-      transition: background 0.25s var(--spring-out);
-      flex: 0 0 auto;
-    }
-    .switch.on {
-      background: var(--amber);
-    }
-    .switch::after {
-      content: '';
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: #fff;
-      transition: transform 0.3s var(--spring-out);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-    }
-    .switch.on::after {
-      transform: translateX(16px);
-    }
+        .bottom-sheet {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: var(--card-bg);
+            border-radius: 24px 24px 0 0;
+            z-index: 101;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 24px 20px 40px;
+        }
+        .bottom-sheet.active { transform: translateY(0); }
 
-    /* ===== Сетка товаров (скроллится) ===== */
-    .grid-wrap {
-      flex: 1;
-      overflow-y: auto;
-      padding: 6px 14px 20px;
-      -webkit-overflow-scrolling: touch;
-      scroll-behavior: smooth;
-    }
+        .sheet-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+        .sheet-title { font-size: 20px; font-weight: 700; line-height: 1.3; flex: 1; margin-right: 12px; }
+        .sheet-brand { font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .sheet-close { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.1); border: none; color: var(--text-primary); font-size: 18px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 14px;
-    }
+        .sheet-img { width: 100%; aspect-ratio: 4/3; border-radius: 16px; overflow: hidden; margin-bottom: 16px; background: var(--skeleton-base); }
+        .sheet-img img { width: 100%; height: 100%; object-fit: cover; }
 
-    @media (min-width: 600px) {
-      .grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 16px;
-      }
-    }
-    @media (min-width: 900px) {
-      .grid {
-        grid-template-columns: repeat(4, 1fr);
-        gap: 18px;
-      }
-    }
-    @media (min-width: 1200px) {
-      .grid {
-        grid-template-columns: repeat(5, 1fr);
-        gap: 20px;
-      }
-    }
+        /* Пирамида аромата */
+        .pyramid { margin-bottom: 16px; }
+        .pyramid-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .pyramid-label { font-size: 10px; color: var(--text-secondary); text-transform: uppercase; width: 50px; flex-shrink: 0; }
+        .pyramid-notes { font-size: 13px; color: var(--text-primary); line-height: 1.4; }
+        .pyramid-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 12px 0; }
 
-    /* ===== Карточка ===== */
-    .card {
-      background: var(--card);
-      border-radius: 20px;
-      overflow: hidden;
-      cursor: pointer;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.20);
-      transition: transform 0.12s var(--spring-out), box-shadow 0.2s ease;
-      -webkit-touch-callout: none;
-      opacity: 0;
-      animation: cardRise 0.5s var(--spring-out) forwards;
-    }
+        .sheet-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px; }
 
-    @keyframes cardRise {
-      from {
-        opacity: 0;
-        transform: scale(0.94) translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-      }
-    }
+        /* Чипсы выбора объема */
+        .volume-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+        .chip {
+            padding: 10px 16px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.06);
+            border: 1.5px solid transparent;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        .chip.selected { border-color: var(--accent); background: rgba(212, 165, 116, 0.15); color: var(--accent); }
+        .chip:active { transform: scale(0.95); }
 
-    @media (prefers-reduced-motion: reduce) {
-      .card {
-        animation: none;
-        opacity: 1;
-      }
-    }
+        .order-btn {
+            width: 100%;
+            padding: 16px;
+            border-radius: 14px;
+            background: var(--accent);
+            color: #1A0F16;
+            font-size: 15px;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .order-btn:hover { background: var(--accent-hover); }
+        .order-btn:active { transform: scale(0.98); }
 
-    .card:active {
-      transform: scale(0.96);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
+        /* Футер */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+        .footer a { color: var(--text-secondary); text-decoration: none; opacity: 0.6; }
+        .footer a:hover { opacity: 1; }
 
-    .card-photo {
-      aspect-ratio: 1/1;
-      background-color: var(--card-soft);
-      background-position: center;
-      background-size: cover;
-      background-repeat: no-repeat;
-      position: relative;
-      display: flex;
-      align-items: flex-end;
-      padding: 8px;
-    }
-
-    .card-photo::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(160deg, transparent 60%, rgba(36, 26, 20, 0.06));
-    }
-
-    .stock-dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      background: #7AAE8F;
-      box-shadow: 0 0 0 3px rgba(122, 174, 143, 0.22);
-      position: relative;
-      z-index: 1;
-    }
-    .stock-dot.out {
-      background: #C2876B;
-      box-shadow: 0 0 0 3px rgba(194, 135, 107, 0.18);
-    }
-
-    .card-body {
-      padding: 12px 13px 14px;
-    }
-    .card-body .brand {
-      font-family: var(--font-mono);
-      font-size: 9.5px;
-      letter-spacing: 0.07em;
-      text-transform: uppercase;
-      color: var(--ink-soft);
-    }
-    .card-body h3 {
-      font-family: var(--font-display);
-      font-weight: 600;
-      font-size: 15.5px;
-      line-height: 1.2;
-      margin-top: 3px;
-      color: var(--ink);
-    }
-    .card-body .price {
-      font-family: var(--font-mono);
-      font-size: 12.5px;
-      font-weight: 500;
-      color: var(--amber-deep);
-      margin-top: 8px;
-    }
-
-    /* ===== Скелетоны ===== */
-    .skeleton {
-      background: var(--card);
-      border-radius: 20px;
-      overflow: hidden;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-    }
-    .skeleton-photo {
-      aspect-ratio: 1/1;
-      background: linear-gradient(90deg, var(--card-soft) 25%, rgba(255, 255, 255, 0.25) 50%, var(--card-soft) 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.4s infinite;
-    }
-    .skeleton-body {
-      padding: 12px 13px 14px;
-    }
-    .skeleton-line {
-      height: 9px;
-      border-radius: 100px;
-      background: linear-gradient(90deg, var(--card-soft) 25%, rgba(255, 255, 255, 0.25) 50%, var(--card-soft) 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.4s infinite;
-      margin-bottom: 8px;
-    }
-    .skeleton-line.short {
-      width: 55%;
-    }
-    .skeleton-line.long {
-      width: 80%;
-    }
-    .skeleton-line.price {
-      width: 40%;
-      margin-top: 4px;
-    }
-
-    @keyframes shimmer {
-      0% {
-        background-position: 200% 0;
-      }
-      100% {
-        background-position: -200% 0;
-      }
-    }
-
-    /* ===== Пустой поиск ===== */
-    .empty-search {
-      grid-column: 1/-1;
-      text-align: center;
-      padding: 48px 24px 32px;
-      color: var(--on-dark-soft);
-    }
-    .empty-search .empty-icon {
-      font-size: 52px;
-      display: block;
-      margin-bottom: 14px;
-      opacity: 0.8;
-    }
-    .empty-search h3 {
-      font-family: var(--font-display);
-      font-size: 18px;
-      color: var(--on-dark);
-      margin-bottom: 8px;
-    }
-    .empty-search p {
-      font-size: 13.5px;
-      line-height: 1.5;
-    }
-    .empty-search button {
-      margin-top: 16px;
-      padding: 10px 22px;
-      border-radius: 100px;
-      border: 1px solid rgba(217, 140, 63, 0.4);
-      background: transparent;
-      color: var(--amber);
-      font-family: var(--font-body);
-      font-size: 14px;
-      cursor: pointer;
-      transition: background 0.15s ease;
-    }
-    .empty-search button:active {
-      background: rgba(217, 140, 63, 0.15);
-    }
-
-    /* ===== Кнопка поделиться ===== */
-    .share-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 7px;
-      width: 100%;
-      padding: 12px;
-      border: 1px solid rgba(36, 26, 20, 0.15);
-      border-radius: 14px;
-      background: var(--card-soft);
-      color: var(--ink-soft);
-      font-family: var(--font-body);
-      font-size: 14px;
-      cursor: pointer;
-      margin-top: 10px;
-      transition: background 0.12s ease;
-    }
-    .share-btn:active {
-      background: var(--card);
-    }
-
-    /* ===== Детальный лист (sheet) ===== */
-    .sheet-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(15, 10, 7, 0.45);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-      z-index: 50;
-    }
-    .sheet-backdrop.open {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .sheet {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      max-height: 88vh;
-      height: auto;
-      background: rgba(246, 239, 227, 0.94);
-      backdrop-filter: blur(30px);
-      -webkit-backdrop-filter: blur(30px);
-      border-radius: 24px 24px 0 0;
-      transform: translateY(100%);
-      transition: transform 0.45s var(--spring-out);
-      z-index: 51;
-      overflow-y: auto;
-      color: var(--ink);
-      padding-bottom: env(safe-area-inset-bottom, 16px);
-      -webkit-overflow-scrolling: touch;
-    }
-    .sheet.open {
-      transform: translateY(0);
-    }
-
-    .sheet-handle {
-      width: 36px;
-      height: 4px;
-      border-radius: 100px;
-      background: rgba(36, 26, 20, 0.15);
-      margin: 10px auto 0;
-    }
-
-    .sheet-photo {
-      aspect-ratio: 1/1;
-      background-color: var(--card-soft);
-      background-position: center;
-      background-size: cover;
-      background-repeat: no-repeat;
-      margin: 14px 18px 0;
-      border-radius: 16px;
-    }
-
-    .sheet-content {
-      padding: 16px 20px 24px;
-    }
-    .sheet-content .brand {
-      font-family: var(--font-mono);
-      font-size: 10.5px;
-      letter-spacing: 0.07em;
-      text-transform: uppercase;
-      color: var(--ink-soft);
-    }
-    .sheet-content h2 {
-      font-family: var(--font-display);
-      font-weight: 600;
-      font-size: 23px;
-      margin-top: 4px;
-      line-height: 1.15;
-    }
-
-    .sheet-meta {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-top: 10px;
-    }
-    .sheet-stock {
-      font-size: 11.5px;
-      padding: 3px 10px;
-      border-radius: 100px;
-      font-weight: 500;
-    }
-    .sheet-stock.in {
-      background: rgba(122, 174, 143, 0.2);
-      color: #3F6B5B;
-    }
-    .sheet-stock.out {
-      background: rgba(194, 135, 107, 0.18);
-      color: #8C5A41;
-    }
-
-    .notes {
-      margin-top: 18px;
-    }
-    .note-group {
-      margin-bottom: 12px;
-    }
-    .note-label {
-      font-family: var(--font-mono);
-      font-size: 9.5px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--ink-soft);
-      margin-bottom: 6px;
-    }
-    .note-pills {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-    .pill {
-      font-size: 12px;
-      padding: 4px 10px;
-      border-radius: 100px;
-      background: var(--card-soft);
-      color: var(--ink);
-    }
-
-    .desc {
-      font-size: 13.5px;
-      color: var(--ink-soft);
-      line-height: 1.55;
-      margin-top: 14px;
-    }
-
-    .vol-label {
-      font-family: var(--font-mono);
-      font-size: 9.5px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--ink-soft);
-      margin-top: 18px;
-      margin-bottom: 8px;
-    }
-
-    .vol-table {
-      border-radius: 14px;
-      overflow: hidden;
-      border: 1px solid rgba(36, 26, 20, 0.1);
-    }
-    .vol-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 14px;
-      background: rgba(255, 255, 255, 0.3);
-      cursor: pointer;
-      transition: background 0.12s ease;
-    }
-    .vol-row:active {
-      transform: scale(0.98);
-    }
-    .vol-row.selected {
-      background: var(--amber);
-    }
-    .vol-row.selected .vol-ml,
-    .vol-row.selected .vol-price {
-      color: #fff;
-    }
-    .vol-row:not(:last-child) {
-      border-bottom: 1px solid rgba(36, 26, 20, 0.06);
-    }
-    .vol-ml {
-      font-size: 13.5px;
-      color: var(--ink);
-      font-weight: 500;
-    }
-    .vol-price {
-      font-family: var(--font-mono);
-      font-size: 13.5px;
-      color: var(--amber-deep);
-      font-weight: 500;
-    }
-    .vol-note {
-      font-size: 12px;
-      color: var(--ink-soft);
-      font-style: italic;
-      margin-top: 8px;
-    }
-
-    .order-btn {
-      display: block;
-      width: 100%;
-      padding: 14px;
-      border: none;
-      border-radius: 14px;
-      background: var(--amber);
-      color: #fff;
-      font-family: var(--font-body);
-      font-weight: 600;
-      font-size: 15px;
-      cursor: pointer;
-      margin-top: 20px;
-      transition: transform 0.12s var(--spring-out), background 0.2s ease;
-    }
-    .order-btn:active {
-      transform: scale(0.96);
-      background: var(--amber-deep);
-    }
-
-    .sheet-close {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      background: rgba(36, 26, 20, 0.06);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      border: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: transform 0.2s var(--spring-out);
-    }
-    .sheet-close:active {
-      transform: scale(0.88);
-    }
-
-    /* ===== Заставка ===== */
-    .splash {
-      position: fixed;
-      inset: 0;
-      background: var(--bg);
-      background-image:
-        radial-gradient(ellipse 700px 400px at 50% -8%, rgba(217, 140, 63, 0.22), transparent 65%),
-        radial-gradient(ellipse 500px 350px at 100% 20%, rgba(139, 58, 90, 0.18), transparent 60%),
-        radial-gradient(ellipse 500px 400px at 0% 60%, rgba(90, 40, 60, 0.15), transparent 55%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 100;
-      opacity: 1;
-      transition: opacity 0.6s ease;
-    }
-    .splash.hide {
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .splash-textwrap {
-      position: relative;
-      display: inline-block;
-    }
-    .splash-text {
-      display: block;
-      font-family: var(--font-display);
-      font-weight: 600;
-      font-size: clamp(28px, 8vw, 44px);
-      letter-spacing: -0.01em;
-      white-space: nowrap;
-    }
-    .splash-text-ghost {
-      color: transparent;
-      -webkit-text-stroke: 1px rgba(246, 239, 227, 0.28);
-    }
-    .splash-text-fill {
-      position: absolute;
-      top: 0;
-      left: 0;
-      color: var(--amber);
-      clip-path: polygon(0% 100%, 100% 100%, 100% 100%, 0% 100%);
-    }
-    .splash-text-fill.rise {
-      animation: waveFill 2.6s cubic-bezier(.45, 0, .2, 1) forwards;
-    }
-
-    @keyframes waveFill {
-      0% {
-        clip-path: polygon(0% 100%, 15% 100%, 30% 100%, 45% 100%, 60% 100%, 75% 100%, 90% 100%, 100% 100%, 100% 100%, 0% 100%);
-      }
-      35% {
-        clip-path: polygon(0% 55%, 15% 48%, 30% 58%, 45% 46%, 60% 60%, 75% 46%, 90% 58%, 100% 50%, 100% 100%, 0% 100%);
-      }
-      65% {
-        clip-path: polygon(0% 28%, 15% 34%, 30% 22%, 45% 36%, 60% 20%, 75% 36%, 90% 22%, 100% 30%, 100% 100%, 0% 100%);
-      }
-      100% {
-        clip-path: polygon(0% 0%, 15% 0%, 30% 0%, 45% 0%, 60% 0%, 75% 0%, 90% 0%, 100% 0%, 100% 100%, 0% 100%);
-      }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .splash-text-fill.rise {
-        animation: waveFillReduced .8s ease forwards;
-      }
-    }
-
-    @keyframes waveFillReduced {
-      from {
-        clip-path: polygon(0% 100%, 100% 100%, 100% 100%, 0% 100%);
-      }
-      to {
-        clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
-      }
-    }
-  </style>
+        /* Ошибка загрузки */
+        .error-state {
+            grid-column: span 2;
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+        .error-state p:first-child { font-size: 40px; margin-bottom: 12px; }
+    </style>
 </head>
-
 <body>
-  <!-- Заставка -->
-  <div class="splash" id="splash">
-    <div class="splash-textwrap">
-      <span class="splash-text splash-text-ghost">Parfum House</span>
-      <span class="splash-text splash-text-fill" id="splashFill">Parfum House</span>
+
+    <!-- СКЕЛЕТОН-ЛОАДЕР -->
+    <div id="skeleton-loader" class="skeleton-grid">
+        <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-text"></div><div class="skeleton-text short"></div></div>
+        <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-text"></div><div class="skeleton-text short"></div></div>
+        <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-text"></div><div class="skeleton-text short"></div></div>
+        <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-text"></div><div class="skeleton-text short"></div></div>
+        <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-text"></div><div class="skeleton-text short"></div></div>
+        <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-text"></div><div class="skeleton-text short"></div></div>
     </div>
-  </div>
 
-  <!-- Фиксированная шапка -->
-  <header class="header-fixed">
-    <div class="header-row">
-      <div class="header-main">
-        <div class="eyebrow">Оригинальная парфюмерия из Европы</div>
-        <h1 id="shopName">ParfumHouse</h1>
-        <p id="shopSub">Флаконы в наличии — пишите, оформим в переписке</p>
-      </div>
-      <a class="dev-credit" href="https://t.me/Sargis_Sargsyan" target="_blank" rel="noopener">
-        <span class="dev-made">made by</span>
-        <svg class="dev-logo" viewBox="0 0 592.51 197.5" xmlns="http://www.w3.org/2000/svg">
-          <path fill="#FEFEFE" d="M98.75 0l395.01 0c54.31,0 98.75,44.44 98.75,98.75l0 0c0,54.31 -44.44,98.75 -98.75,98.75l-395.01 0c-54.31,0 -98.75,-44.44 -98.75,-98.75l0 0c0,-54.31 44.44,-98.75 98.75,-98.75z" />
-          <path fill="#008DD2" fill-rule="nonzero" d="M100.79 164.41c-4.99,0 -8.8,-1.38 -11.44,-4.14 -2.64,-2.76 -3.96,-6.4 -3.96,-10.91 0,-4.52 1.79,-8.39 5.37,-11.62 3.58,-3.23 7.86,-4.84 12.85,-4.84 4.99,0 8.8,1.32 11.44,3.96 2.64,2.64 3.96,6.19 3.96,10.65 0,4.46 -1.79,8.39 -5.37,11.79 -3.58,3.4 -7.86,5.1 -12.85,5.1zm78.24 -11.97c-3.75,3.29 -8.68,6.1 -14.79,8.45 -6.1,2.35 -11.65,3.52 -16.63,3.52 -4.99,0 -9.07,-1.44 -12.23,-4.31 -3.17,-2.88 -4.75,-7.01 -4.75,-12.41 0,-5.4 2.96,-20.45 8.89,-45.15 5.93,-24.7 8.89,-43.04 8.89,-55.01 0,-2.58 -0.35,-5.87 -1.06,-9.86 11.03,-3.05 21.71,-4.58 32.04,-4.58 1.06,1.88 1.58,4.93 1.58,9.15 0,7.98 -2.96,25.38 -8.89,52.19 -5.93,26.81 -8.89,42.27 -8.89,46.38 0,4.11 0.71,6.16 2.11,6.16 1.17,0 3.7,-0.76 7.57,-2.29l1.94 -0.88 4.22 8.63zm2.99 -22c0,-14.55 4.43,-25.87 13.29,-33.97 8.86,-8.1 19.8,-12.14 32.83,-12.14 9.04,0 16.28,1.97 21.74,5.9 5.46,3.93 8.19,9.18 8.19,15.75 0,4.81 -1.47,9.09 -4.4,12.85 -2.93,3.76 -6.51,6.63 -10.74,8.63 -8.92,3.99 -16.66,6.4 -23.23,7.22l-4.4 0.53c1.29,7.74 5.16,11.62 11.62,11.62 2.82,0 5.93,-0.61 9.33,-1.85 3.4,-1.23 6.1,-2.49 8.1,-3.78l2.99 -1.76 5.63 7.57c0,0 -0.65,0.64 -1.94,1.94 -0.7,0.7 -2.38,2.08 -5.01,4.14 -2.64,2.05 -5.4,3.84 -8.27,5.37 -2.88,1.53 -6.54,2.91 -11,4.14 -4.46,1.23 -8.92,1.85 -13.38,1.85 -9.97,0 -17.69,-2.9 -23.15,-8.71 -5.46,-5.81 -8.18,-14.23 -8.18,-25.26zm32.56 -6.86c3.4,-0.47 6.81,-3.26 10.21,-8.36 3.4,-5.1 5.1,-9.39 5.1,-12.85 0,-3.46 -1,-5.19 -2.99,-5.19 -2.93,0 -5.63,2.29 -8.1,6.86 -2.46,4.58 -3.87,11.09 -4.22,19.54zm49.29 18.66l2.29 -36.79c0,-3.17 -0.44,-5.66 -1.32,-7.48 -0.88,-1.82 -2.67,-4.37 -5.37,-7.66l0.7 -2.64c9.04,-2.11 16.55,-3.17 22.53,-3.17 5.98,0 10.18,1.38 12.59,4.14 2.41,2.76 3.61,6.66 3.61,11.71 0,5.05 -0.91,12.44 -2.73,22.18 -1.82,9.74 -2.73,16.16 -2.73,19.27 0,3.11 0.88,4.66 2.64,4.66 2.82,0 6.48,-2.67 11,-8.01 4.52,-5.34 7.48,-10.59 8.89,-15.75l-13.02 -12.5c0.47,-4.93 1.52,-9.53 3.17,-13.82 1.64,-4.28 3.11,-7.31 4.4,-9.07l2.11 -2.82c14.2,0 21.3,5.87 21.3,17.6 0,7.63 -2.32,16.22 -6.95,25.79 -4.63,9.56 -11.12,18.04 -19.45,25.43 -8.33,7.39 -16.96,11.09 -25.88,11.09 -11.85,0 -17.78,-7.39 -17.78,-22.18zm70.05 -11.79c0,-14.55 4.43,-25.87 13.29,-33.97 8.86,-8.1 19.8,-12.14 32.83,-12.14 9.04,0 16.28,1.97 21.74,5.9 5.46,3.93 8.18,9.18 8.18,15.75 0,4.81 -1.47,9.09 -4.4,12.85 -2.93,3.76 -6.51,6.63 -10.74,8.63 -8.92,3.99 -16.66,6.4 -23.23,7.22l-4.4 0.53c1.29,7.74 5.16,11.62 11.62,11.62 2.82,0 5.93,-0.61 9.33,-1.85 3.4,-1.23 6.1,-2.49 8.1,-3.78l2.99 -1.76 5.63 7.57c0,0 -0.65,0.64 -1.94,1.94 -0.7,0.7 -2.38,2.08 -5.01,4.14 -2.64,2.05 -5.4,3.84 -8.27,5.37 -2.88,1.53 -6.54,2.91 -11,4.14 -4.46,1.23 -8.92,1.85 -13.38,1.85 -9.97,0 -17.69,-2.9 -23.15,-8.71 -5.46,-5.81 -8.18,-14.23 -8.18,-25.26zm32.56 -6.86c3.4,-0.47 6.81,-3.26 10.21,-8.36 3.4,-5.1 5.1,-9.39 5.1,-12.85 0,-3.46 -1,-5.19 -2.99,-5.19 -2.93,0 -5.63,2.29 -8.1,6.86 -2.46,4.58 -3.87,11.09 -4.22,19.54zm93.46 28.87c-3.75,3.29 -8.68,6.1 -14.79,8.45 -6.1,2.35 -11.65,3.52 -16.63,3.52 -4.99,0 -9.07,-1.44 -12.23,-4.31 -3.17,-2.88 -4.75,-7.01 -4.75,-12.41 0,-5.4 2.96,-20.45 8.89,-45.15 5.93,-24.7 8.89,-43.04 8.89,-55.01 0,-2.58 -0.35,-5.87 -1.06,-9.86 11.03,-3.05 21.71,-4.58 32.04,-4.58 1.06,1.88 1.58,4.93 1.58,9.15 0,7.98 -2.96,25.38 -8.89,52.19 -5.93,26.81 -8.89,42.27 -8.89,46.38 0,4.11 0.71,6.16 2.11,6.16 1.17,0 3.7,-0.76 7.57,-2.29l1.94 -0.88 4.22 8.63z" />
-        </svg>
-      </a>
+    <!-- СЕТКА ТОВАРОВ -->
+    <div id="products-grid"></div>
+
+    <!-- OVERLAY + BOTTOM SHEET -->
+    <div class="overlay" id="overlay"></div>
+    <div class="bottom-sheet" id="bottom-sheet">
+        <div class="sheet-header">
+            <div>
+                <div class="sheet-brand" id="sheet-brand"></div>
+                <div class="sheet-title" id="sheet-title"></div>
+            </div>
+            <button class="sheet-close" id="sheet-close">✕</button>
+        </div>
+        <div class="sheet-img" id="sheet-img-wrap"></div>
+        <div class="pyramid" id="sheet-pyramid"></div>
+        <div class="sheet-desc" id="sheet-desc"></div>
+        <div class="volume-chips" id="sheet-chips"></div>
+        <button class="order-btn" id="order-btn">Заказать</button>
     </div>
-  </header>
 
-  <!-- Фиксированные фильтры -->
-  <div class="filters-fixed">
-    <div class="toolbar">
-      <div class="search">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="7" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
-        <input id="searchInput" type="text" placeholder="Найти аромат или бренд" />
-      </div>
+    <!-- ФУТЕР -->
+    <div class="footer">
+        <a href="https://t.me/LevelApp_am" target="_blank">made by LevelApp</a>
     </div>
-    <div class="stock-toggle">
-      <div class="switch" id="stockSwitch"></div>
-      <span>Только то, что в наличии</span>
-    </div>
-  </div>
 
-  <!-- Сетка товаров (скроллится) -->
-  <div class="grid-wrap" id="gridWrap">
-    <div class="grid" id="grid">
-      <div class="skeleton"><div class="skeleton-photo"></div><div class="skeleton-body"><div class="skeleton-line short"></div><div class="skeleton-line long"></div><div class="skeleton-line price"></div></div></div>
-      <div class="skeleton"><div class="skeleton-photo"></div><div class="skeleton-body"><div class="skeleton-line short"></div><div class="skeleton-line long"></div><div class="skeleton-line price"></div></div></div>
-      <div class="skeleton"><div class="skeleton-photo"></div><div class="skeleton-body"><div class="skeleton-line short"></div><div class="skeleton-line long"></div><div class="skeleton-line price"></div></div></div>
-      <div class="skeleton"><div class="skeleton-photo"></div><div class="skeleton-body"><div class="skeleton-line short"></div><div class="skeleton-line long"></div><div class="skeleton-line price"></div></div></div>
-    </div>
-  </div>
+<script>
+// =============================================
+// ⚙️ НАСТРОЙКИ — ИЗМЕНИТЬ ПЕРЕД ВЫДАЧЕЙ
+// =============================================
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQMSpQwstchHCeBia5-2c67KFHPzkid8DCUqmHwZ6TanFD8H2VtwnNenQnByu0qyenKqVJx8ERTkv4s/pub?gid=0&single=true&output=csv"; // ← Вставить CSV-ссылку из Google Таблицы
+const TELEGRAM_USERNAME = "Kristine_parfum"; // ← Telegram-ник продавца без @
+// =============================================
 
-  <!-- Детальный лист -->
-  <div class="sheet-backdrop" id="backdrop"></div>
-  <div class="sheet" id="sheet">
-    <div class="sheet-handle"></div>
-    <button class="sheet-close" id="sheetClose" aria-label="Закрыть">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#241A14" stroke-width="2">
-        <line x1="18" y1="6" x2="6" y2="18" />
-        <line x1="6" y1="6" x2="18" y2="18" />
-      </svg>
-    </button>
-    <div class="sheet-photo" id="sheetPhoto"></div>
-    <div class="sheet-content" id="sheetContent"></div>
-  </div>
+// Инициализация Telegram WebApp
+const tg = window.Telegram?.WebApp;
+let isTelegram = false;
 
-  <script>
-    // ===== НАСТРОЙКИ =====
-    const SHEET_CSV_URL =
-      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQMSpQwstchHCeBia5-2c67KFHPzkid8DCUqmHwZ6TanFD8H2VtwnNenQnByu0qyenKqVJx8ERTkv4s/pub?gid=0&single=true&output=csv";
-    const TELEGRAM_USERNAME = "Kristine_parfum";
-    const SHOP_NAME = "ParfumHouse";
-    const SHOP_SUB = "Флаконы в наличии — пишите, оформим в переписке";
-    const BOT_SHARE_URL = "https://t.me/parfumhouse_orig_bot/parfumhouse";
+if (tg) {
+    tg.ready();
+    tg.expand();
+    tg.setHeaderColor('#1A0F16');
+    isTelegram = true;
+}
 
-    const SAMPLE_DATA = [{
-      name: "Baccarat Rouge 540",
-      brand: "Maison Francis Kurkdjian",
-      top: "шафран, жасмин",
-      heart: "амбергрис",
-      base: "кедр, бензоин",
-      vols: [{ ml: "2", price: "900" }, { ml: "5", price: "2100" }, { ml: "10", price: "3900" }],
-      stock: "yes",
-      photo: "",
-      desc: "Янтарно-сладкий, с эффектом «второй кожи». Держится сутки."
-    }, {
-      name: "Santal 33",
-      brand: "Le Labo",
-      top: "кардамон, фиалка",
-      heart: "сандал, кожа",
-      base: "кедр, амбер",
-      vols: [{ ml: "2", price: "650" }, { ml: "5", price: "1500" }, { ml: "10", price: "2800" }],
-      stock: "yes",
-      photo: "",
-      desc: "Тёплый, дымный сандал с нотой кожи. Унисекс."
-    }, {
-      name: "Light Blue",
-      brand: "Dolce & Gabbana",
-      top: "лимон, яблоко",
-      heart: "бамбук, жасмин",
-      base: "амбер, кедр",
-      vols: [{ ml: "2", price: "180" }, { ml: "5", price: "400" }, { ml: "10", price: "750" }],
-      stock: "no",
-      photo: "",
-      desc: "Лёгкий летний аромат, свежий и сочный."
-    }, {
-      name: "Black Opium",
-      brand: "Yves Saint Laurent",
-      top: "груша, мандарин",
-      heart: "жасмин, кофе",
-      base: "ваниль, пачули",
-      vols: [{ ml: "2", price: "300" }, { ml: "5", price: "700" }, { ml: "10", price: "1300" }],
-      stock: "yes",
-      photo: "",
-      desc: "Кофейно-ванильный, тёмный и сладкий вечерний аромат."
-    }];
+// Парсер Google Drive ссылок → прямая ссылка на изображение
+function getDriveImageUrl(url) {
+    if (!url || !url.includes('drive.google.com')) return url;
+    const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (!match) return null;
+    return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+}
 
-    let allItems = [];
-    let searchQuery = "";
-    let onlyInStock = false;
+// Парсинг CSV
+function parseCSV(text) {
+    const lines = text.trim().split('\n');
+    if (lines.length < 2) return [];
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    return lines.slice(1).filter(line => line.trim()).map(line => {
+        const values = line.split(',');
+        const obj = {};
+        headers.forEach((h, i) => obj[h] = (values[i] || '').trim());
+        return obj;
+    });
+}
 
-    // ===== Haptic =====
-    function haptic(style = 'light') {
-      try {
-        if (window.Telegram?.WebApp?.HapticFeedback) {
-          Telegram.WebApp.HapticFeedback.impactOccurred(style);
-        }
-      } catch (_) {}
-    }
+// Рендер сетки товаров
+function renderProducts(products) {
+    const grid = document.getElementById('products-grid');
+    grid.innerHTML = '';
 
-    // ===== Парсинг CSV =====
-    function parseCSV(text) {
-      const rows = [];
-      let row = [],
-        field = "",
-        inQuotes = false;
-      for (let i = 0; i < text.length; i++) {
-        const c = text[i];
-        if (inQuotes) {
-          if (c === '"' && text[i + 1] === '"') { field += '"';
-            i++; } else if (c === '"') { inQuotes = false; } else field += c;
-        } else {
-          if (c === '"') inQuotes = true;
-          else if (c === ',') { row.push(field);
-            field = ""; } else if (c === '\n' || c === '\r') {
-            if (field.length || row.length) { row.push(field);
-              rows.push(row); }
-            field = "";
-            row = [];
-            if (c === '\r' && text[i + 1] === '\n') i++;
-          } else field += c;
-        }
-      }
-      if (field.length || row.length) { row.push(field);
-        rows.push(row); }
-      return rows.filter(r => r.length && r.some(c => c.trim() !== ""));
-    }
-
-    function rowsToItems(rows) {
-      const headers = rows[0].map(h => h.trim().toLowerCase());
-      const idx = (name) => headers.indexOf(name);
-      return rows.slice(1).map(r => {
-        const vols = [];
-        for (let n = 1; n <= 3; n++) {
-          const ml = r[idx("vol" + n)];
-          const price = r[idx("price" + n)];
-          if (ml && price) vols.push({ ml: ml.trim(), price: price.trim() });
-        }
-        return {
-          name: r[idx("name")] || "",
-          brand: r[idx("brand")] || "",
-          top: r[idx("top")] || "",
-          heart: r[idx("heart")] || "",
-          base: r[idx("base")] || "",
-          vols: vols,
-          stock: (r[idx("stock")] || "").trim().toLowerCase(),
-          photo: r[idx("photo")] || "",
-          desc: r[idx("desc")] || ""
-        };
-      }).filter(it => it.name);
-    }
-
-    async function loadData() {
-      if (!SHEET_CSV_URL) {
-        allItems = SAMPLE_DATA;
-        render();
+    if (!products.length) {
+        grid.innerHTML = '<div class="error-state"><p>🫙</p><p>Каталог пуст.<br>Проверьте Google Таблицу.</p></div>';
         return;
-      }
-      try {
-        const res = await fetch(SHEET_CSV_URL);
-        const text = await res.text();
-        const rows = parseCSV(text);
-        allItems = rowsToItems(rows);
-        if (!allItems.length) allItems = SAMPLE_DATA;
-      } catch (_) {
-        allItems = SAMPLE_DATA;
-      }
-      render();
     }
 
-    function resolvePhotoUrl(url) {
-      if (!url) return "";
-      url = url.trim();
-      let match = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
-      if (match) return `https://lh3.googleusercontent.com/d/${match[1]}`;
-      match = url.match(/[?&]id=([^&]+)/);
-      if (url.includes("drive.google.com") && match) return `https://lh3.googleusercontent.com/d/${match[1]}`;
-      return url;
-    }
+    products.forEach(p => {
+        const inStock = (p.stock || '').toLowerCase() !== 'no';
+        const imgUrl = getDriveImageUrl(p.photo);
+        const firstPrice = p.price1 ? `${Number(p.price1).toLocaleString('ru-RU')} ₽` : '';
 
-    function pillsFrom(str) {
-      return (str || "").split(",").map(s => s.trim()).filter(Boolean);
-    }
-
-    function parsePriceNumber(p) {
-      const num = (p || "").toString().replace(/[^\d]/g, "");
-      return num ? parseInt(num, 10) : Infinity;
-    }
-
-    function formatPrice(p) {
-      const num = parsePriceNumber(p);
-      return num === Infinity ? "" : `${num} ₽`;
-    }
-
-    function priceFrom(vols) {
-      if (!vols || !vols.length) return "";
-      const cheapest = vols.reduce((a, b) => parsePriceNumber(a.price) <= parsePriceNumber(b.price) ? a : b);
-      return `от ${formatPrice(cheapest.price)}`;
-    }
-
-    // ===== Открытие детального листа =====
-    function openSheet(item) {
-      haptic('medium');
-      const inStock = item.stock === "yes" || item.stock === "да";
-      document.getElementById("sheetPhoto").style.backgroundImage = item.photo ? `url('${resolvePhotoUrl(item.photo)}')` :
-        "none";
-      let selectedIndex = 0;
-      document.getElementById("sheetContent").innerHTML = `
-        <div class="brand">${item.brand}</div>
-        <h2>${item.name}</h2>
-        <div class="sheet-meta">
-          <span class="sheet-stock ${inStock ? 'in' : 'out'}">${inStock ? 'В наличии' : 'Нет в наличии'}</span>
-        </div>
-        <div class="vol-label">Выберите объём</div>
-        <div class="vol-table" id="volTable">
-          ${item.vols.map((v,i) => `<div class="vol-row ${i===0 ? 'selected' : ''}" data-index="${i}"><span class="vol-ml">${v.ml} мл</span><span class="vol-price">${formatPrice(v.price)}</span></div>`).join("")}
-        </div>
-        <div class="vol-note">Уточняйте наличие выбранного объёма при заказе</div>
-        <div class="notes">
-          ${item.top ? `<div class="note-group"><div class="note-label">Верхние ноты</div><div class="note-pills">${pillsFrom(item.top).map(p=>`<span class="pill">${p}</span>`).join("")}</div></div>` : ""}
-          ${item.heart ? `<div class="note-group"><div class="note-label">Ноты сердца</div><div class="note-pills">${pillsFrom(item.heart).map(p=>`<span class="pill">${p}</span>`).join("")}</div></div>` : ""}
-          ${item.base ? `<div class="note-group"><div class="note-label">Базовые ноты</div><div class="note-pills">${pillsFrom(item.base).map(p=>`<span class="pill">${p}</span>`).join("")}</div></div>` : ""}
-        </div>
-        ${item.desc ? `<div class="desc">${item.desc}</div>` : ""}
-        <button class="order-btn" id="sheetOrderBtn">Заказать</button>
-        <button class="share-btn" id="sheetShareBtn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-          Поделиться
-        </button>
-      `;
-
-      document.querySelectorAll("#volTable .vol-row").forEach(row => {
-        row.addEventListener("click", () => {
-          document.querySelectorAll("#volTable .vol-row").forEach(r => r.classList.remove("selected"));
-          row.classList.add("selected");
-          selectedIndex = parseInt(row.dataset.index, 10);
-          haptic('light');
-        });
-      });
-
-      document.getElementById("sheetOrderBtn").addEventListener("click", () => {
-        haptic('heavy');
-        const chosen = item.vols[selectedIndex];
-        const volText = chosen ? `, ${chosen.ml} мл (${formatPrice(chosen.price)})` : "";
-        const text = `Здравствуйте! Хочу заказать «${item.name}» (${item.brand})${volText}.`;
-        const link = `https://t.me/${TELEGRAM_USERNAME}?text=${encodeURIComponent(text)}`;
-        if (window.Telegram?.WebApp?.initData) {
-          window.Telegram.WebApp.openTelegramLink(link);
-        } else {
-          window.open(link, "_blank");
-        }
-      });
-
-      document.getElementById("sheetShareBtn").addEventListener("click", async () => {
-        const shareData = { title: `${item.name} — ${item.brand}`, text: `${item.name} (${item.brand}) в ParfumHouse`,
-          url: BOT_SHARE_URL };
-        try {
-          if (navigator.share) {
-            await navigator.share(shareData);
-          } else {
-            await navigator.clipboard.writeText(BOT_SHARE_URL);
-            const btn = document.getElementById("sheetShareBtn");
-            if (btn) {
-              const orig = btn.innerHTML;
-              btn.textContent = "✓ Скопировано";
-              setTimeout(() => { btn.innerHTML = orig; }, 2000);
-            }
-          }
-        } catch (_) {}
-      });
-
-      document.getElementById("backdrop").classList.add("open");
-      document.getElementById("sheet").classList.add("open");
-    }
-
-    function closeSheet() {
-      document.getElementById("backdrop").classList.remove("open");
-      document.getElementById("sheet").classList.remove("open");
-    }
-    document.getElementById("backdrop").addEventListener("click", closeSheet);
-    document.getElementById("sheetClose").addEventListener("click", closeSheet);
-
-    // ===== Рендеринг сетки =====
-    function renderGrid() {
-      const grid = document.getElementById("grid");
-      let items = allItems;
-      if (onlyInStock) items = items.filter(i => i.stock === "yes" || i.stock === "да");
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        items = items.filter(i => i.name.toLowerCase().includes(q) || i.brand.toLowerCase().includes(q));
-      }
-
-      if (!items.length) {
-        const isFiltered = searchQuery || onlyInStock;
-        grid.innerHTML = `
-          <div class="empty-search">
-            <span class="empty-icon">🫙</span>
-            <h3>Ничего не нашли</h3>
-            <p>Попробуйте другой запрос<br>или сбросьте фильтр</p>
-            ${isFiltered ? `<button id="resetBtn">Сбросить фильтры</button>` : ""}
-          </div>`;
-        if (isFiltered) {
-          document.getElementById("resetBtn").addEventListener("click", () => {
-            searchQuery = "";
-            onlyInStock = false;
-            document.getElementById("searchInput").value = "";
-            document.getElementById("stockSwitch").classList.remove("on");
-            renderGrid();
-          });
-        }
-        return;
-      }
-
-      grid.innerHTML = "";
-      items.forEach((item, n) => {
-        const inStock = item.stock === "yes" || item.stock === "да";
-        const photoStyle = item.photo ? `background-image:url('${resolvePhotoUrl(item.photo)}')` : "";
-
-        const card = document.createElement("div");
-        card.className = "card";
-        card.style.animationDelay = (n * 0.03) + "s";
+        const card = document.createElement('div');
+        card.className = `product-card${!inStock ? ' out-of-stock' : ''}`;
+        card.dataset.product = JSON.stringify(p);
         card.innerHTML = `
-          <div class="card-photo" style="${photoStyle}">
-            <span class="stock-dot ${inStock ? '' : 'out'}"></span>
-          </div>
-          <div class="card-body">
-            <div class="brand">${item.brand}</div>
-            <h3>${item.name}</h3>
-            <div class="price">${priceFrom(item.vols)}</div>
-          </div>
+            <div class="product-img-wrap">
+                ${imgUrl 
+                    ? `<img src="${imgUrl}" alt="${p.name}" loading="lazy">` 
+                    : `<div class="no-image-placeholder">🫧</div>`}
+            </div>
+            ${!inStock ? '<div class="stock-badge no">Нет в наличии</div>' : ''}
+            <div class="product-info">
+                <div class="product-brand">${p.brand || ''}</div>
+                <div class="product-name">${p.name || ''}</div>
+                <div class="product-price">${firstPrice}</div>
+            </div>
         `;
-        card.addEventListener("click", () => {
-          haptic('light');
-          openSheet(item);
-        });
+        if (inStock) card.addEventListener('click', () => openSheet(p));
         grid.appendChild(card);
-      });
+    });
+}
+
+// Открытие Bottom Sheet
+let currentProduct = null;
+let selectedVolume = null;
+
+function openSheet(product) {
+    currentProduct = product;
+    
+    // Заполняем данные
+    document.getElementById('sheet-brand').textContent = product.brand || '';
+    document.getElementById('sheet-title').textContent = product.name || '';
+    document.getElementById('sheet-desc').textContent = product.desc || '';
+
+    // Фото
+    const imgUrl = getDriveImageUrl(product.photo);
+    const imgWrap = document.getElementById('sheet-img-wrap');
+    imgWrap.innerHTML = imgUrl 
+        ? `<img src="${imgUrl}" alt="${product.name}">` 
+        : `<div class="no-image-placeholder" style="height:100%">🫧</div>`;
+
+    // Пирамида
+    const pyramidEl = document.getElementById('sheet-pyramid');
+    const notes = [
+        { label: 'Верх', value: product.top },
+        { label: 'Сердце', value: product.heart },
+        { label: 'База', value: product.base }
+    ].filter(n => n.value);
+    
+    if (notes.length) {
+        pyramidEl.style.display = 'block';
+        pyramidEl.innerHTML = notes.map((n, i) => `
+            ${i > 0 ? '<div class="pyramid-divider"></div>' : ''}
+            <div class="pyramid-row">
+                <span class="pyramid-label">${n.label}</span>
+                <span class="pyramid-notes">${n.value}</span>
+            </div>
+        `).join('');
+    } else {
+        pyramidEl.style.display = 'none';
     }
 
-    function render() { renderGrid(); }
-
-    // ===== События =====
-    document.getElementById("stockSwitch").addEventListener("click", function() {
-      haptic('light');
-      onlyInStock = !onlyInStock;
-      this.classList.toggle("on", onlyInStock);
-      renderGrid();
-    });
-
-    document.getElementById("searchInput").addEventListener("input", function() {
-      searchQuery = this.value;
-      renderGrid();
-    });
-
-    document.getElementById("shopName").textContent = SHOP_NAME;
-    document.getElementById("shopSub").textContent = SHOP_SUB;
-
-    // ===== Telegram =====
-    if (window.Telegram?.WebApp) {
-      const tg = window.Telegram.WebApp;
-      tg.ready();
-      tg.expand();
-      try {
-        if (tg.setHeaderColor) tg.setHeaderColor("#1A0F16");
-        if (tg.setBackgroundColor) tg.setBackgroundColor("#1A0F16");
-        if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
-        if (tg.requestFullscreen) tg.requestFullscreen();
-      } catch (_) {}
+    // Чипсы объёмов
+    const chipsEl = document.getElementById('sheet-chips');
+    chipsEl.innerHTML = '';
+    const volumes = [];
+    for (let i = 1; i <= 3; i++) {
+        if (product[`vol${i}`] && product[`price${i}`]) {
+            volumes.push({ vol: product[`vol${i}`], price: product[`price${i}`] });
+        }
     }
 
-    // ===== Заставка =====
-    const splashFillEl = document.getElementById("splashFill");
-    const splashEl = document.getElementById("splash");
+    selectedVolume = volumes[0] || null;
 
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (splashFillEl) splashFillEl.classList.add("rise");
-      });
+    volumes.forEach((v, idx) => {
+        const chip = document.createElement('div');
+        chip.className = `chip${idx === 0 ? ' selected' : ''}`;
+        chip.textContent = `${v.vol} мл · ${Number(v.price).toLocaleString('ru-RU')} ₽`;
+        chip.addEventListener('click', () => {
+            selectedVolume = v;
+            chipsEl.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+            chip.classList.add('selected');
+            updateOrderBtn();
+            if (isTelegram) tg.HapticFeedback?.selectionChanged();
+        });
+        chipsEl.appendChild(chip);
     });
 
-    function hideSplash() {
-      if (splashEl) splashEl.classList.add("hide");
+    updateOrderBtn();
+
+    // Показываем sheet
+    document.getElementById('overlay').classList.add('active');
+    document.getElementById('bottom-sheet').classList.add('active');
+
+    // Telegram BackButton
+    if (isTelegram) {
+        tg.BackButton.show();
+        tg.BackButton.onClick(closeSheet);
+    }
+}
+
+function updateOrderBtn() {
+    const btn = document.getElementById('order-btn');
+    if (selectedVolume) {
+        btn.textContent = `Заказать за ${Number(selectedVolume.price).toLocaleString('ru-RU')} ₽`;
+    } else {
+        btn.textContent = 'Заказать';
+    }
+    
+    // Обновляем нативную кнопку Telegram если есть
+    if (isTelegram && tg.MainButton) {
+        tg.MainButton.setText(btn.textContent);
+        tg.MainButton.show();
+        tg.MainButton.onClick(placeOrder);
+    }
+}
+
+function closeSheet() {
+    document.getElementById('overlay').classList.remove('active');
+    document.getElementById('bottom-sheet').classList.remove('active');
+    if (isTelegram) {
+        tg.BackButton.hide();
+        tg.MainButton?.hide();
+        tg.BackButton.offClick(closeSheet);
+        tg.MainButton?.offClick(placeOrder);
+    }
+    currentProduct = null;
+    selectedVolume = null;
+}
+
+function placeOrder() {
+    if (!currentProduct) return;
+
+    const volText = selectedVolume 
+        ? `, объём ${selectedVolume.vol} мл` 
+        : '';
+    
+    const message = `Хочу заказать ${currentProduct.name}${currentProduct.brand ? ' (' + currentProduct.brand + ')' : ''}${volText}`;
+    const url = `https://t.me/${TELEGRAM_USERNAME}?text=${encodeURIComponent(message)}`;
+
+    if (isTelegram) tg.HapticFeedback?.impactOccurred('medium');
+    
+    window.open(url, '_blank');
+    closeSheet();
+}
+
+// Закрытие по клику на overlay или кнопку ✕
+document.getElementById('overlay').addEventListener('click', closeSheet);
+document.getElementById('sheet-close').addEventListener('click', closeSheet);
+
+// HTML-кнопка заказа (для веб-версии вне Telegram)
+document.getElementById('order-btn').addEventListener('click', placeOrder);
+
+// Загрузка данных
+async function loadProducts() {
+    const skeleton = document.getElementById('skeleton-loader');
+    const grid = document.getElementById('products-grid');
+
+    if (!SHEET_CSV_URL) {
+        skeleton.classList.add('hidden');
+        grid.style.display = 'grid';
+        grid.innerHTML = '<div class="error-state"><p>⚙️</p><p>Не указан URL таблицы.<br>Откройте index.html и добавьте ссылку в SHEET_CSV_URL</p></div>';
+        return;
     }
 
-    const splashStart = Date.now();
-    const MIN_SPLASH_MS = 2800;
-    loadData().catch(() => {}).then(() => {
-      const elapsed = Date.now() - splashStart;
-      const remain = Math.max(0, MIN_SPLASH_MS - elapsed);
-      setTimeout(hideSplash, remain);
-    });
-  </script>
+    try {
+        const res = await fetch(SHEET_CSV_URL);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const csv = await res.text();
+        const products = parseCSV(csv);
+        renderProducts(products);
+        skeleton.classList.add('hidden');
+        grid.style.display = 'grid';
+    } catch (err) {
+        console.error('Load error:', err);
+        skeleton.classList.add('hidden');
+        grid.style.display = 'grid';
+        grid.innerHTML = '<div class="error-state"><p>😔</p><p>Не удалось загрузить каталог.<br>Проверьте интернет и обновите страницу.</p></div>';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadProducts);
+</script>
 </body>
 </html>
