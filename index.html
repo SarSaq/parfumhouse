@@ -50,33 +50,34 @@
     }
 
     body {
-      background: var(--bg);
-      background-image:
-        radial-gradient(ellipse 700px 400px at 50% -8%, rgba(217, 140, 63, 0.22), transparent 65%),
-        radial-gradient(ellipse 500px 350px at 100% 20%, rgba(139, 58, 90, 0.18), transparent 60%),
-        radial-gradient(ellipse 500px 400px at 0% 60%, rgba(90, 40, 60, 0.15), transparent 55%);
-      background-attachment: fixed;
-      color: var(--on-dark);
-      font-family: var(--font-body);
-      -webkit-font-smoothing: antialiased;
-      min-height: 100%;
-      -webkit-overflow-scrolling: touch;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
-    }
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse 700px 400px at 50% -8%, rgba(217, 140, 63, 0.22), transparent 65%),
+    radial-gradient(ellipse 500px 350px at 100% 20%, rgba(139, 58, 90, 0.18), transparent 60%),
+    radial-gradient(ellipse 500px 400px at 0% 60%, rgba(90, 40, 60, 0.15), transparent 55%);
+  background-attachment: fixed;
+  color: var(--on-dark);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100%;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  padding-top: env(safe-area-inset-top, 44px);
+}
 
     /* ===== Фиксированная шапка ===== */
     .header-fixed {
-      flex-shrink: 0;
-      padding: 16px 18px 12px;
-      background: rgba(26, 15, 22, 0.72);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-      z-index: 10;
-    }
+  flex-shrink: 0;
+  padding: calc(16px + env(safe-area-inset-top, 44px)) 18px 12px;
+  background: rgba(26, 15, 22, 0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  z-index: 10;
+}
 
     .header-row {
       display: flex;
