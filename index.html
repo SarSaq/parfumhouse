@@ -809,6 +809,7 @@ function openSheet(item){
     } else {
       window.open(link, "_blank");
     }
+  });
   document.getElementById("backdrop").classList.add("open");
   document.getElementById("sheet").classList.add("open");
 }
@@ -903,56 +904,44 @@ if(window.Telegram && window.Telegram.WebApp){
 }
 
 // ===== Анимация заставки: заливка текста снизу вверх =====
-const splashEl    = document.getElementById("splash");
-const splashVideo = document.getElementById("splashVideo");
-const splashText  = document.getElementById("splashText");
+(function(){
+  var splashEl    = document.getElementById("splash");
+  var splashVideo = document.getElementById("splashVideo");
+  var splashText  = document.getElementById("splashText");
+  var done = false;
+  var guard = null;
 
-function hideSplash(){
-  if(!splashEl) return;
-  splashEl.classList.add("fade-out");
-  setTimeout(() => {
-    if(splashEl && splashEl.parentNode) splashEl.parentNode.removeChild(splashEl);
-  }, 850);
-}
-
-if(splashVideo){
-  let splashDone = false;
-  function safeSplashHide(delay=0){
-    if(splashDone) return;
-    splashDone = true;
-    clearTimeout(splashGuard);
-    setTimeout(hideSplash, delay);
+  function hide(){
+    if(done) return;
+    done = true;
+    if(guard) clearTimeout(guard);
+    if(!splashEl) return;
+    splashEl.classList.add("fade-out");
+    setTimeout(function(){
+      if(splashEl && splashEl.parentNode) splashEl.parentNode.removeChild(splashEl);
+    }, 850);
   }
 
-  // За 1.5с до конца — показываем текст
-  splashVideo.addEventListener("timeupdate", () => {
-    const remaining = splashVideo.duration - splashVideo.currentTime;
-    if(remaining <= 1.5 && !splashText.classList.contains("show")){
-      splashVideo.classList.add("fade");
-      splashText.classList.add("show");
-    }
-  });
+  if(splashVideo){
+    splashVideo.addEventListener("timeupdate", function(){
+      var rem = splashVideo.duration - splashVideo.currentTime;
+      if(rem <= 1.5 && splashText && !splashText.classList.contains("show")){
+        splashVideo.classList.add("fade");
+        splashText.classList.add("show");
+      }
+    });
+    splashVideo.addEventListener("ended",   function(){ setTimeout(hide, 600); });
+    splashVideo.addEventListener("error",   function(){ hide(); });
+    splashVideo.addEventListener("stalled", function(){ setTimeout(hide, 2000); });
+    splashEl.addEventListener("click",      function(){ hide(); });
+  }
 
-  // Видео закончилось штатно
-  splashVideo.addEventListener("ended", () => safeSplashHide(600));
+  // Страховка — максимум 8 секунд
+  guard = setTimeout(hide, 8000);
 
-  // Видео не может грузиться — уходим сразу
-  splashVideo.addEventListener("error",   () => safeSplashHide(300));
-  splashVideo.addEventListener("stalled", () => safeSplashHide(1500));
-  splashVideo.addEventListener("waiting", () => {
-    // waiting = буферизация; даём 2с и если не возобновилось — уходим
-    setTimeout(() => { if(!splashDone && splashVideo.paused) safeSplashHide(0); }, 2000);
-  });
-
-  // Тап/клик — пропустить
-  splashEl.addEventListener("click", () => safeSplashHide(0));
-
-  // Страховка: максимум 5 секунд
-  const splashGuard = setTimeout(() => safeSplashHide(0), 5000);
-}
-
-// Грузим данные параллельно с видео
-loadData().catch(()=>{});
+  // Грузим данные параллельно
+  loadData().catch(function(){});
+})();
 
 // ===== Анимированный фон =====
 (function(){
