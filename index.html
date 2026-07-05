@@ -347,6 +347,10 @@
     text-decoration:none;
   }
   .dev-credit:active{ background:rgba(30,18,26,0.95); }
+  #devCredit{
+    cursor:pointer;
+    pointer-events:all !important; /* принудительно — на случай если родитель блокирует */
+  }
   .dev-made{
     font-family:var(--font-mono);
     font-size:10px;
@@ -985,6 +989,20 @@ loadData().catch(()=>{}).then(() => {
   const remain = Math.max(0, MIN_SPLASH_MS - elapsed);
   setTimeout(hideSplash, remain);
 });
+
+// ===== Шильдик — переход в Telegram ====
+const devCreditEl = document.getElementById("devCredit");
+if(devCreditEl){
+  devCreditEl.addEventListener("click", (e) => {
+    e.preventDefault();
+    const url = "https://t.me/Sargis_Sargsyan";
+    if(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openTelegramLink){
+      window.Telegram.WebApp.openTelegramLink(url);
+    } else {
+      window.open(url, "_blank");
+    }
+  });
+}
 
 // ===== Pull-to-refresh =====
 // Индикатор рисуем динамически чтобы не засорять HTML
