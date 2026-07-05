@@ -916,7 +916,15 @@ function hideSplash(){
 }
 
 if(splashVideo){
-  // За 1.5с до конца видео — прячем видео, показываем текст
+  let splashDone = false;
+  function safeSplashHide(delay=0){
+    if(splashDone) return;
+    splashDone = true;
+    clearTimeout(splashGuard);
+    setTimeout(hideSplash, delay);
+  }
+
+  // За 1.5с до конца — показываем текст
   splashVideo.addEventListener("timeupdate", () => {
     const remaining = splashVideo.duration - splashVideo.currentTime;
     if(remaining <= 1.5 && !splashText.classList.contains("show")){
@@ -925,18 +933,22 @@ if(splashVideo){
     }
   });
 
-  // Когда видео закончилось — плавно скрываем весь splash
-  splashVideo.addEventListener("ended", () => {
-    setTimeout(hideSplash, 800);
+  // Видео закончилось штатно
+  splashVideo.addEventListener("ended", () => safeSplashHide(600));
+
+  // Видео не может грузиться — уходим сразу
+  splashVideo.addEventListener("error",   () => safeSplashHide(300));
+  splashVideo.addEventListener("stalled", () => safeSplashHide(1500));
+  splashVideo.addEventListener("waiting", () => {
+    // waiting = буферизация; даём 2с и если не возобновилось — уходим
+    setTimeout(() => { if(!splashDone && splashVideo.paused) safeSplashHide(0); }, 2000);
   });
 
-  // Если видео не загрузилось — скрываем через 4с
-  splashVideo.addEventListener("error", () => {
-    setTimeout(hideSplash, 500);
-  });
+  // Тап/клик — пропустить
+  splashEl.addEventListener("click", () => safeSplashHide(0));
 
-  // Страховка: максимум 8 секунд
-  setTimeout(hideSplash, 8000);
+  // Страховка: максимум 5 секунд
+  const splashGuard = setTimeout(() => safeSplashHide(0), 5000);
 }
 
 // Грузим данные параллельно с видео
