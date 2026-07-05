@@ -40,13 +40,11 @@
   *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
   html,body{ height:100%; }
   body{
-    padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 68px); /* отступ под шильдик */
     background:var(--bg);
     background-attachment:fixed;
     color:var(--on-dark);
     font-family:var(--font-body);
     -webkit-font-smoothing:antialiased;
-    padding-bottom:48px;
     min-height:100%;
   }
 
@@ -153,7 +151,7 @@
   .switch.on::after{ transform:translateX(16px); }
 
   .grid{
-    padding:4px 14px 18px;
+    padding:4px 14px calc(env(safe-area-inset-bottom, 0px) + 86px);
     display:grid;
     grid-template-columns:1fr 1fr;
     gap:12px;
@@ -306,25 +304,6 @@
     border:1.5px solid rgba(167,139,250,0.3);
   }
   .order-btn.notify:active{ background:var(--card-soft); }
-
-  /* ===== Кнопка поделиться ===== */
-  .share-btn{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:7px;
-    width:100%;
-    padding:12px;
-    border:1px solid rgba(167,139,250,0.2);
-    border-radius:14px;
-    background:var(--card-soft);
-    color:var(--ink-soft);
-    font-family:var(--font-body);
-    font-size:14px;
-    cursor:pointer;
-    margin-top:10px;
-  }
-  .share-btn:active{ background:var(--card); }
 
   .dev-credit{
     /* Полноширинная строка-шильдик — прибита к низу экрана */
@@ -809,10 +788,6 @@ function openSheet(item){
     </div>
     ${item.desc ? `<div class="desc">${item.desc}</div>` : ""}
     <button class="order-btn ${inStock ? '' : 'notify'}" id="sheetOrderBtn">${inStock ? 'Заказать' : 'Уведомить о поступлении'}</button>
-    <button class="share-btn" id="sheetShareBtn">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-      Поделиться
-    </button>
   `;
   document.querySelectorAll("#volTable .vol-row").forEach(row => {
     row.addEventListener("click", () => {
@@ -834,49 +809,6 @@ function openSheet(item){
     } else {
       window.open(link, "_blank");
     }
-  });
-  document.getElementById("sheetShareBtn").addEventListener("click", async () => {
-    const shareUrl = "https://sarsaq.github.io/parfumhouse/";
-    const btn = document.getElementById("sheetShareBtn");
-
-    // В Telegram WebApp navigator.share недоступен — используем Telegram.WebApp.openLink
-    // который открывает системный share через Telegram
-    const tgApp = window.Telegram && window.Telegram.WebApp;
-    if(tgApp && tgApp.initData){
-      try{
-        // shareToStory или просто openLink — оба открывают Telegram share-диалог
-        if(tgApp.shareToStory){
-          // новый API — шарит в историю TG
-        }
-        // Открываем share через стандартный Intent Telegram на Android
-        tgApp.openLink(
-          "https://t.me/share/url?url=" + encodeURIComponent(shareUrl) +
-          "&text=" + encodeURIComponent(item.name + " — " + item.brand + " в ParfumHouse")
-        );
-        return;
-      } catch(e){}
-    }
-
-    // Браузер — нативный системный share
-    if(navigator.share){
-      try{
-        await navigator.share({
-          title: item.name + " — " + item.brand,
-          text: item.name + " (" + item.brand + ") в ParfumHouse",
-          url: shareUrl
-        });
-        return;
-      } catch(e){
-        if(e.name === "AbortError") return;
-      }
-    }
-
-    // Фолбек — копируем
-    try{
-      await navigator.clipboard.writeText(shareUrl);
-      if(btn){ const orig = btn.innerHTML; btn.textContent = "✓ Скопировано"; setTimeout(()=>{ btn.innerHTML = orig; }, 2000); }
-    } catch(e){}
-  });
   document.getElementById("backdrop").classList.add("open");
   document.getElementById("sheet").classList.add("open");
 }
