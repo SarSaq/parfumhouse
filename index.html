@@ -979,7 +979,10 @@ requestAnimationFrame(() => {
 });
 
 function hideSplash(){
-  if(splashEl) splashEl.classList.add("hide");
+  if(!splashEl) return;
+  splashEl.classList.add("hide");
+  // Удаляем из DOM после анимации — иначе невидимый элемент блокирует клики на Android
+  setTimeout(() => { if(splashEl && splashEl.parentNode) splashEl.parentNode.removeChild(splashEl); }, 600);
 }
 
 const splashStart = Date.now();
@@ -995,9 +998,10 @@ const devCreditEl = document.getElementById("devCredit");
 if(devCreditEl){
   devCreditEl.addEventListener("click", (e) => {
     e.preventDefault();
+    e.stopPropagation();
     const url = "https://t.me/Sargis_Sargsyan";
-    if(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openTelegramLink){
-      window.Telegram.WebApp.openTelegramLink(url);
+    if(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData){
+      window.Telegram.WebApp.openLink(url); // openLink — для внешних URL в TG
     } else {
       window.open(url, "_blank");
     }
