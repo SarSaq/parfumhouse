@@ -40,7 +40,7 @@
   *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
   html,body{ height:100%; }
   body{
-    padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 52px); /* отступ под шильдик */
+    padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 68px); /* отступ под шильдик */
     background:var(--bg);
     background-attachment:fixed;
     color:var(--on-dark);
@@ -386,7 +386,7 @@
     z-index:51;
     overflow-y:auto;
     color:var(--ink);
-    padding-bottom:env(safe-area-inset-bottom, 16px);
+    padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 68px);
   }
   .sheet.open{ transform:translateY(0); }
   .sheet-handle{
@@ -540,69 +540,55 @@
     cursor:pointer;
   }
   /* ===== Заставка при запуске ===== */
+  /* ===== SPLASH — видео + плавный переход к тексту ===== */
   .splash{
     position:fixed; inset:0;
-    background:var(--bg);
-    background-image:
-      radial-gradient(ellipse 700px 400px at 50% -8%, rgba(217,140,63,0.22), transparent 65%),
-      radial-gradient(ellipse 500px 350px at 100% 20%, rgba(139,58,90,0.18), transparent 60%),
-      radial-gradient(ellipse 500px 400px at 0% 60%, rgba(90,40,60,0.15), transparent 55%);
+    background:#0A0514;
     display:flex;
     align-items:center;
     justify-content:center;
     z-index:100;
-    opacity:1;
-    transition:opacity .5s ease;
+    overflow:hidden;
   }
-  .splash.hide{
-    opacity:0;
+  .splash.fade-out{
+    animation:splashFadeOut 0.8s ease forwards;
     pointer-events:none;
   }
+  @keyframes splashFadeOut{
+    to{ opacity:0; }
+  }
+
+  /* Видео на весь экран */
+  #splashVideo{
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    object-fit:cover;
+    opacity:1;
+    transition:opacity 1s ease;
+  }
+  #splashVideo.fade{
+    opacity:0;
+  }
+
+  /* Текст появляется поверх видео в конце */
   .splash-textwrap{
     position:relative;
-    display:inline-block;
+    z-index:2;
+    opacity:0;
+    transition:opacity 1.2s ease;
+  }
+  .splash-textwrap.show{
+    opacity:1;
   }
   .splash-text{
     display:block;
     font-family:var(--font-display);
     font-weight:600;
-    font-size:clamp(28px, 8vw, 44px);
+    font-size:clamp(32px, 9vw, 48px);
     letter-spacing:-0.01em;
     white-space:nowrap;
-  }
-  .splash-text-ghost{
-    color:transparent;
-    -webkit-text-stroke:1px rgba(246,239,227,0.28);
-  }
-  .splash-text-fill{
-    position:absolute;
-    top:0; left:0;
     color:var(--amber);
-    clip-path:polygon(0% 100%, 100% 100%, 100% 100%, 0% 100%);
-  }
-  .splash-text-fill.rise{
-    animation:waveFill 2.6s cubic-bezier(.45,0,.2,1) forwards;
-  }
-  @keyframes waveFill{
-    0%{
-      clip-path:polygon(0% 100%, 15% 100%, 30% 100%, 45% 100%, 60% 100%, 75% 100%, 90% 100%, 100% 100%, 100% 100%, 0% 100%);
-    }
-    35%{
-      clip-path:polygon(0% 55%, 15% 48%, 30% 58%, 45% 46%, 60% 60%, 75% 46%, 90% 58%, 100% 50%, 100% 100%, 0% 100%);
-    }
-    65%{
-      clip-path:polygon(0% 28%, 15% 34%, 30% 22%, 45% 36%, 60% 20%, 75% 36%, 90% 22%, 100% 30%, 100% 100%, 0% 100%);
-    }
-    100%{
-      clip-path:polygon(0% 0%, 15% 0%, 30% 0%, 45% 0%, 60% 0%, 75% 0%, 90% 0%, 100% 0%, 100% 100%, 0% 100%);
-    }
-  }
-  @media (prefers-reduced-motion: reduce){
-    .splash-text-fill.rise{ animation:waveFillReduced .8s ease forwards; }
-  }
-  @keyframes waveFillReduced{
-    from{ clip-path:polygon(0% 100%, 100% 100%, 100% 100%, 0% 100%); }
-    to{ clip-path:polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%); }
+    text-shadow:0 0 40px rgba(192,132,252,0.6);
   }
 </style>
 </head>
@@ -611,9 +597,12 @@
 <canvas id="bgCanvas" style="position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;"></canvas>
 
 <div class="splash" id="splash">
-  <div class="splash-textwrap">
-    <span class="splash-text splash-text-ghost">Parfum House</span>
-    <span class="splash-text splash-text-fill" id="splashFill">Parfum House</span>
+  <video id="splashVideo" src="splash.mp4"
+    autoplay muted playsinline webkit-playsinline
+    preload="auto">
+  </video>
+  <div class="splash-textwrap" id="splashText">
+    <span class="splash-text">Parfum House</span>
   </div>
 </div>
 
@@ -847,31 +836,45 @@ function openSheet(item){
     }
   });
   document.getElementById("sheetShareBtn").addEventListener("click", async () => {
-    const shareUrl = window.location.href;
+    const shareUrl = "https://sarsaq.github.io/parfumhouse/";
     const btn = document.getElementById("sheetShareBtn");
 
-    // navigator.share() — нативный системный диалог Android/iOS.
-    // Не используем canShare(): на ряде Android он возвращает false даже когда share работает.
-    // Пробуем напрямую, при ошибке NotAllowedError/AbortError — пользователь закрыл сам.
+    // В Telegram WebApp navigator.share недоступен — используем Telegram.WebApp.openLink
+    // который открывает системный share через Telegram
+    const tgApp = window.Telegram && window.Telegram.WebApp;
+    if(tgApp && tgApp.initData){
+      try{
+        // shareToStory или просто openLink — оба открывают Telegram share-диалог
+        if(tgApp.shareToStory){
+          // новый API — шарит в историю TG
+        }
+        // Открываем share через стандартный Intent Telegram на Android
+        tgApp.openLink(
+          "https://t.me/share/url?url=" + encodeURIComponent(shareUrl) +
+          "&text=" + encodeURIComponent(item.name + " — " + item.brand + " в ParfumHouse")
+        );
+        return;
+      } catch(e){}
+    }
+
+    // Браузер — нативный системный share
     if(navigator.share){
       try{
         await navigator.share({
-          title: `${item.name} — ${item.brand}`,
-          text: `${item.name} (${item.brand}) в ParfumHouse`,
+          title: item.name + " — " + item.brand,
+          text: item.name + " (" + item.brand + ") в ParfumHouse",
           url: shareUrl
         });
-        return; // успешно — выходим
+        return;
       } catch(e){
-        // AbortError = пользователь закрыл диалог, выходим молча
         if(e.name === "AbortError") return;
-        // Другая ошибка (DataError и т.п.) — падаем в фолбек ниже
       }
     }
 
-    // Фолбек: копируем ссылку в буфер (десктоп или браузер без share)
+    // Фолбек — копируем
     try{
       await navigator.clipboard.writeText(shareUrl);
-      if(btn){ const orig = btn.innerHTML; btn.textContent = "✓ Ссылка скопирована"; setTimeout(()=>{ btn.innerHTML = orig; }, 2000); }
+      if(btn){ const orig = btn.innerHTML; btn.textContent = "✓ Скопировано"; setTimeout(()=>{ btn.innerHTML = orig; }, 2000); }
     } catch(e){}
   });
   document.getElementById("backdrop").classList.add("open");
@@ -968,29 +971,44 @@ if(window.Telegram && window.Telegram.WebApp){
 }
 
 // ===== Анимация заставки: заливка текста снизу вверх =====
-const splashFillEl = document.getElementById("splashFill");
-const splashEl = document.getElementById("splash");
-
-requestAnimationFrame(() => {
-  requestAnimationFrame(() => {
-    if(splashFillEl) splashFillEl.classList.add("rise");
-  });
-});
+const splashEl    = document.getElementById("splash");
+const splashVideo = document.getElementById("splashVideo");
+const splashText  = document.getElementById("splashText");
 
 function hideSplash(){
   if(!splashEl) return;
-  splashEl.classList.add("hide");
-  // Удаляем из DOM после анимации — иначе невидимый элемент блокирует клики на Android
-  setTimeout(() => { if(splashEl && splashEl.parentNode) splashEl.parentNode.removeChild(splashEl); }, 600);
+  splashEl.classList.add("fade-out");
+  setTimeout(() => {
+    if(splashEl && splashEl.parentNode) splashEl.parentNode.removeChild(splashEl);
+  }, 850);
 }
 
-const splashStart = Date.now();
-const MIN_SPLASH_MS = 2800;
-loadData().catch(()=>{}).then(() => {
-  const elapsed = Date.now() - splashStart;
-  const remain = Math.max(0, MIN_SPLASH_MS - elapsed);
-  setTimeout(hideSplash, remain);
-});
+if(splashVideo){
+  // За 1.5с до конца видео — прячем видео, показываем текст
+  splashVideo.addEventListener("timeupdate", () => {
+    const remaining = splashVideo.duration - splashVideo.currentTime;
+    if(remaining <= 1.5 && !splashText.classList.contains("show")){
+      splashVideo.classList.add("fade");
+      splashText.classList.add("show");
+    }
+  });
+
+  // Когда видео закончилось — плавно скрываем весь splash
+  splashVideo.addEventListener("ended", () => {
+    setTimeout(hideSplash, 800);
+  });
+
+  // Если видео не загрузилось — скрываем через 4с
+  splashVideo.addEventListener("error", () => {
+    setTimeout(hideSplash, 500);
+  });
+
+  // Страховка: максимум 8 секунд
+  setTimeout(hideSplash, 8000);
+}
+
+// Грузим данные параллельно с видео
+loadData().catch(()=>{});
 
 // ===== Анимированный фон =====
 (function(){
@@ -1014,18 +1032,24 @@ loadData().catch(()=>{}).then(() => {
   resize();
   window.addEventListener("resize", resize);
 
-  let t = 0;
-  function draw(){
+  // Используем реальный timestamp из rAF — нет вспышек при потере фокуса
+  function draw(ts){
+    const t = ts * 0.001; // секунды, очень медленно
+
     ctx.clearRect(0, 0, W, H);
 
+    // Рисуем через globalCompositeOperation чтобы пятна мягко смешивались
+    ctx.globalCompositeOperation = "screen";
+
     BLOBS.forEach((b, i) => {
-      // Медленный дрейф по синусоиде — плавный и органичный
-      const cx = (b.x + Math.sin(t * b.vx * 6000 + i) * 0.18) * W;
-      const cy = (b.y + Math.cos(t * b.vy * 6000 + i * 1.3) * 0.15) * H;
+      // Очень медленный iOS-плавный дрейф — период ~30-60 сек
+      const cx = (b.x + Math.sin(t * 0.07 + i * 1.8) * 0.15) * W;
+      const cy = (b.y + Math.cos(t * 0.05 + i * 1.2) * 0.12) * H;
       const r  = b.r * Math.min(W, H);
 
       const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
       grad.addColorStop(0, b.color);
+      grad.addColorStop(0.5, b.color.replace(/[\d.]+\)$/, m => (parseFloat(m)*0.3).toFixed(2)+')'));
       grad.addColorStop(1, "transparent");
 
       ctx.beginPath();
@@ -1034,10 +1058,10 @@ loadData().catch(()=>{}).then(() => {
       ctx.fill();
     });
 
-    t += 16; // ~60fps шаг
+    ctx.globalCompositeOperation = "source-over";
     requestAnimationFrame(draw);
   }
-  draw();
+  requestAnimationFrame(draw);
 })();
 
 // ===== Шильдик — переход в Telegram ====
